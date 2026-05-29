@@ -147,8 +147,9 @@ namespace gradc {
                 }
                 return true;
             }
-
+            
             Tensor contiguous() {
+                Tensor new_contiguous = Tensor(m_shape); // already right size and right contiguous strides
                 
             }
 
