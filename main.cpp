@@ -1,6 +1,6 @@
 #include <iostream>
-#include<vector>
-#include "tensor.hpp"
+#include <vector>
+#include "gradc/tensor.hpp"
 
 template <typename T>
 std::ostream& operator<<(std::ostream& stream, const std::vector<T>& vector) {

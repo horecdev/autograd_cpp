@@ -7,8 +7,19 @@
 #include <vector>
 
 namespace gradc {
-    struct Slice{};
-    inline constexpr Slice _ = Slice();
+    struct Placeholder{};
+    inline constexpr Placeholder _ = Placeholder(); // inline doesnt confuse linker if its #included in 2+ files.
+
+    struct IndexDesc {
+        bool m_is_all;
+        int64_t m_value;
+
+        IndexDesc(int64_t value)
+            :   m_value(value), m_is_all(false) {}
+
+        IndexDesc(Placeholder _) 
+            : m_value(0), m_is_all(true) {}
+    };
 
     template<typename T>
     class Tensor {
@@ -81,25 +92,40 @@ namespace gradc {
             
             // INDEXING
             template<typename... Args> // ... attached to typename means: create a bucket of types and name it Args.
-            Tensor& operator[](Args... args) { // ... next to the type bucket, before args: Look element-wise at both. Put type inside type bucket, argument inside args.
+            Tensor operator[](Args... args) const { // ... next to the type bucket, before args: Look element-wise at both. Put type inside type bucket, argument inside args.
                 // The compiler sees you passed x: short, y: int, z: size_t, and automatically creates a template (short var_0, int var_1, size_t var_2)
                 // For class templates: pass <float> etc. For funcion/operator templates you dont have to.
                 if (sizeof...(args) != m_shape.size()) { // sizeof... literally means "count elements in the bucket". Its a built-in token.
                     throw std::out_of_range("Coordinate count does not match tensor dimensions.");
                 }
-                std::array<int64_t, sizeof...(args)> raw_coords = {static_cast<int64_t>(args)...}; // when you do [expression(args)...] it means: apply expression to every arg, and seperate it with comas.
-                std::array<size_t, sizeof...(args)> coords;
+
+                std::array<IndexDesc, sizeof...(args)> descriptors = {IndexDesc(args)...}; // when you do [expression(args)...] it means: apply expression to every arg, and separate it with comas.
+                std::vector<size_t> new_shape;
+                std::vector<size_t> new_strides;
+                size_t new_offset = m_offset;
+                new_shape.reserve(sizeof...(args)); // max amount of elements reserved upfront (evades dynamic reallocations)
+                new_strides.reserve(sizeof...(args));
                 for (int i = 0; i < sizeof...(args); ++i) {
-                    if (raw_coords[i] >= 0) {
-                        coords[i] = static_cast<size_t>(raw_coords[i]);
+                    if (descriptors[i].m_is_all) {
+                        new_shape.push_back(m_shape[i]); // worked it out on paper
+                        new_strides.push_back(m_strides[i]);   
                     }
                     else {
-                        coords[i] = static_cast<size_t>(m_shape[i] + raw_coords[i]);
-                    } // TODO: ADD STRUCT SLICEALL, CALCULATE OFFSETS, SHAPES AND STRIDES TO RETURN A TENSOR SHALLOW COPY
+                        new_offset += descriptors[i].value * m_strides[i];
+                    }
                 }
-
-
+                return Tensor(std::move(new_shape), std::move(new_strides), new_offset, m_data); // backdoor construct shallow copy
             }
+
+            T item() {
+                if (m_shape.size() == 0) {
+                    return m_data[m_offset];
+                }
+                else {
+                    throw std::runtime_error(".item() can be called only on 0-dimensional tensors.");
+                }
+            }
+
             // GETTERS
 
             const std::vector<size_t>& shape() const {
@@ -109,6 +135,24 @@ namespace gradc {
             const std::vector<size_t>& strides() const {
                 return m_strides;
             }
+
+            bool is_contiguous() const {
+                if (m_strides[m_strides.size() - 1] != 1) {
+                    return false;
+                }
+                for (size_t i = m_shape.size() - 1; i > 0; --i) {
+                    if (m_strides[i - 1] != m_shape[i] * m_strides[i]) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            Tensor contiguous() {
+                
+            }
+
+
 
 
 
