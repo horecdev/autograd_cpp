@@ -4,6 +4,5 @@
 
 int main() {
     gradc::Tensor<float> tens(std::vector<size_t>{4, 3 ,2});
-    tens = tens[gradc::_, 1, gradc::_];
-    tens.contiguous();
+    tens.permute({2, 0, 1});
 }

@@ -127,7 +127,15 @@ namespace gradc {
                         new_strides.push_back(m_strides[i]);   
                     }
                     else {
-                        new_offset += descriptors[i].m_value * m_strides[i];
+                        int64_t coord = descriptors[i].m_value;
+                        if (descriptors[i].m_value < 0) { // (-1 on shape 4 becomes 3)
+                            coord += static_cast<int64_t>(m_shape[i]);
+                        }
+
+                        if (coord < 0 || coord >= static_cast<int64_t>(m_shape[i])) {
+                            throw std::out_of_range("Index out of bounds for tensor dimension.");
+                        }
+                        new_offset += static_cast<size_t>(coord) * m_strides[i];
                     }
                 }
                 return Tensor(std::move(new_shape), std::move(new_strides), new_offset, m_data); // backdoor construct shallow copy
@@ -164,7 +172,7 @@ namespace gradc {
                 return true;
             }
             
-            Tensor contiguous() {
+            Tensor contiguous() const {
                 if (m_shape.empty()) {
                     Tensor scalar_tensor = Tensor(std::vector<size_t>{});
                     (*scalar_tensor.m_data)[0] = (*m_data)[m_offset];
@@ -191,7 +199,7 @@ namespace gradc {
                 return new_contiguous;
             }
 
-            Tensor transpose(size_t dim0, size_t dim1) {
+            Tensor transpose(const size_t dim0, const size_t dim1) {
                 std::vector<size_t> new_shape = m_shape;
                 std::vector<size_t> new_strides = m_strides;
                 size_t temp = new_shape[dim0];
@@ -201,7 +209,65 @@ namespace gradc {
                 new_strides[dim0] = new_strides[dim1];
                 new_strides[dim1] = temp;
 
-                Tensor transposed = Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_data);
+                return  Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_data);
+            }
+
+            Tensor permute(const std::vector<int64_t>& axes) {
+                size_t n_dim = m_shape.size();
+                std::cout << axes.size() << " " << n_dim << std::endl;
+                if (axes.size() != n_dim) {
+                    throw std::runtime_error("permute() axes list size must match shape list size.");
+                }
+                std::vector<size_t> new_shape = std::vector<size_t>(n_dim);
+                std::vector<size_t> new_strides = std::vector<size_t>(n_dim);
+                for (size_t target_ax = 0; target_ax < n_dim; ++target_ax) {
+                    int64_t src_ax = axes[target_ax];
+                    if (src_ax < 0) {
+                        src_ax = n_dim + src_ax;
+                    }
+                    new_shape[target_ax] = m_shape[src_ax];
+                    new_strides[target_ax] = m_strides[src_ax];
+                }
+                return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_data);
+            }
+
+            Tensor reshape(std::vector<int64_t>& target_shape) {
+                std::vector<size_t> new_shape = std::vector<size_t>(target_shape.size());
+                std::vector<size_t> new_strides = std::vector<size_t>(target_shape.size());
+                size_t total_volume = 1;
+                size_t running_volume = 1;
+                size_t neg_one_idx = -1;
+
+                for (size_t i = 0; i < m_shape.size(); ++i) {
+                    total_volume *= m_shape[i];
+                }
+                
+                for (size_t i = 0; i < target_shape.size(); ++i) {
+                    if (target_shape[i] == -1 && neg_one_idx == -1) {
+                        neg_one_idx = i;
+                    }
+                    else if (target_shape[i] == -1 && neg_one_idx != -1) {
+                        throw std::runtime_error("Cannot .reshape() with two or more unknown dimensions.");
+                    }
+                    else {
+                        running_volume *= target_shape[i];
+                    }
+                }
+
+                size_t unknown_dim;
+                if (total_volume % running_volume != 0) {
+                    throw std::runtime_error("Invalid reshape parameters.");
+                }
+                else {
+                    size_t unknown_dim = total_volume / running_volume;
+                }
+                new_shape[neg_one_idx] = unknown_dim;
+
+                
+                // TODO: Implement return tensors
+                if (this->is_contiguous()) { // cannot reshape a non-conituous tensor.
+                    return Tensor(std::move);
+                }
             }
     };
 }
