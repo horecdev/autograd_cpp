@@ -5,8 +5,24 @@
 #include <ostream>
 #include <stdexcept>
 #include <vector>
+#include <array>
+
+template <typename T>
+std::ostream& operator<<(std::ostream& stream, const std::vector<T>& vector) {
+    for (size_t i = 0; i < vector.size(); ++i) {
+        if (i == vector.size() - 1) {
+            stream << vector[i];
+        }
+        else {
+            stream << vector[i] << " ";
+        }
+        
+    }
+    return stream;
+}
 
 namespace gradc {
+
     struct Placeholder{};
     inline constexpr Placeholder _ = Placeholder(); // inline doesnt confuse linker if its #included in 2+ files.
 
@@ -17,7 +33,7 @@ namespace gradc {
         IndexDesc(int64_t value)
             :   m_value(value), m_is_all(false) {}
 
-        IndexDesc(Placeholder _) 
+        IndexDesc(Placeholder) 
             : m_value(0), m_is_all(true) {}
     };
 
@@ -111,7 +127,7 @@ namespace gradc {
                         new_strides.push_back(m_strides[i]);   
                     }
                     else {
-                        new_offset += descriptors[i].value * m_strides[i];
+                        new_offset += descriptors[i].m_value * m_strides[i];
                     }
                 }
                 return Tensor(std::move(new_shape), std::move(new_strides), new_offset, m_data); // backdoor construct shallow copy
@@ -149,13 +165,43 @@ namespace gradc {
             }
             
             Tensor contiguous() {
+                if (m_shape.empty()) {
+                    Tensor scalar_tensor = Tensor(std::vector<size_t>{});
+                    (*scalar_tensor.m_data)[0] = (*m_data)[m_offset];
+                }
                 Tensor new_contiguous = Tensor(m_shape); // already right size and right contiguous strides
-                
+                size_t n_dims = m_shape.size();
+                std::vector<size_t> odometer(n_dims); // zeroed out
+                size_t contiguous_idx = 0;
+                while (odometer[0] < m_shape[0]) {
+                    size_t strided_idx = m_offset;
+                    for (size_t i = 0; i < n_dims; ++i) {
+                        strided_idx += odometer[i] * m_strides[i];
+                    }
+                    (*new_contiguous.m_data)[contiguous_idx] = (*m_data)[strided_idx];
+                    ++contiguous_idx;
+                    ++odometer[n_dims - 1];
+                    size_t i = n_dims - 1;
+                    while ((odometer[i] == m_shape[i]) && i > 0) {
+                        odometer[i] = 0;
+                        ++odometer[i - 1];
+                        --i;
+                    }
+                }
+                return new_contiguous;
             }
 
+            Tensor transpose(size_t dim0, size_t dim1) {
+                std::vector<size_t> new_shape = m_shape;
+                std::vector<size_t> new_strides = m_strides;
+                size_t temp = new_shape[dim0];
+                new_shape[dim0] = new_shape[dim1];
+                new_shape[dim1] = temp;
+                temp = new_strides[dim0];
+                new_strides[dim0] = new_strides[dim1];
+                new_strides[dim1] = temp;
 
-
-
-
+                Tensor transposed = Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_data);
+            }
     };
 }
