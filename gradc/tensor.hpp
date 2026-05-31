@@ -315,10 +315,52 @@ namespace gradc {
             return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_data);
         }
 
-        std::vector<size_t> infer_broadcast(const std::vector<size_t>& a, const std::vector<size_t>& b) const {
+        std::vector<size_t> infer_broadcast(const std::vector<size_t>& a, const std::vector<size_t>& b) const { // only infers target shape
             size_t size_a = a.size();
             size_t size_b = b.size();
+
+            std::vector<size_t> infered_shape(std::max(size_a, size_b));
             
-        }
+            if (size_a >= size_b) {
+                for (size_t b_idx = 0; b_idx < size_b; ++b_idx) {
+                    size_t a_idx = b_idx + (size_a - size_b);
+                    size_t shape_a = a[a_idx];
+                    size_t shape_b = b[b_idx];
+                    if (shape_a == shape_b) {
+                        infered_shape[a_idx] = shape_a;
+                    }
+                    else if (shape_a == 1 || shape_b == 1) {
+                        infered_shape[a_idx] = std::max(shape_a, shape_b);
+                    }
+                    else {
+                        throw std::runtime_error("Incompatible shapes for broadcasting.");
+                    }
+                }
+                for (size_t a_idx = 0; a_idx < (size_a - size_b); ++a_idx) {
+                    infered_shape[a_idx] = a[a_idx];
+                }
+            }
+            else if (size_a < size_b) {
+                for (size_t a_idx = 0; a_idx < size_a; ++a_idx) {
+                    size_t b_idx = a_idx + (size_b - size_a);
+                    size_t shape_a = a[a_idx];
+                    size_t shape_b = b[b_idx];
+                    if (shape_a == shape_b) {
+                        infered_shape[b_idx] = shape_b;
+                    }
+                    else if (shape_a == 1 || shape_b == 1) {
+                        infered_shape[b_idx] = std::max(shape_a, shape_b);
+                    }
+                    else {
+                        throw std::runtime_error("Incompatible shapes for broadcasting.");
+                    }
+                }
+                for (size_t b_idx = 0; b_idx < (size_b - size_a); ++b_idx) {
+                    infered_shape[b_idx] = b[b_idx];
+                }
+            }
+
+            return infered_shape;   
+        }   
     };
 }
