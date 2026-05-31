@@ -231,12 +231,12 @@ namespace gradc {
                 return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_data);
             }
 
-            Tensor reshape(std::vector<int64_t>& target_shape) {
+            Tensor reshape(const std::vector<int64_t>& target_shape) {
                 std::vector<size_t> new_shape = std::vector<size_t>(target_shape.size());
                 std::vector<size_t> new_strides = std::vector<size_t>(target_shape.size());
                 size_t total_volume = 1;
                 size_t running_volume = 1;
-                size_t neg_one_idx = -1;
+                int64_t neg_one_idx = -1;
 
                 for (size_t i = 0; i < m_shape.size(); ++i) {
                     total_volume *= m_shape[i];
@@ -250,6 +250,7 @@ namespace gradc {
                         throw std::runtime_error("Cannot .reshape() with two or more unknown dimensions.");
                     }
                     else {
+                        new_shape[i] = target_shape[i];
                         running_volume *= target_shape[i];
                     }
                 }
@@ -259,15 +260,29 @@ namespace gradc {
                     throw std::runtime_error("Invalid reshape parameters.");
                 }
                 else {
-                    size_t unknown_dim = total_volume / running_volume;
+                    unknown_dim = total_volume / running_volume;
                 }
-                new_shape[neg_one_idx] = unknown_dim;
 
-                
-                // TODO: Implement return tensors
-                if (this->is_contiguous()) { // cannot reshape a non-conituous tensor.
-                    return Tensor(std::move);
+                if (neg_one_idx != -1) {
+                    new_shape[neg_one_idx] = unknown_dim;
                 }
+
+                new_strides[target_shape.size() - 1] = 1;
+                for (size_t i = target_shape.size() - 1; i > 0; --i) {
+                    new_strides[i - 1] = new_shape[i] * new_strides[i];
+                }
+                
+                if (this->is_contiguous()) { // cannot reshape a non-contiguous tensor.
+                    return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_data);
+                }
+
+                Tensor reshaped_tensor = this->contiguous(); // contiguous is shape-sensitive (if sliced then only slice is made contiguous)
+                reshaped_tensor.m_shape = new_shape;
+                reshaped_tensor.m_strides = new_strides;
+
+                return reshaped_tensor;
             }
+
+        Tensor broadcast_to() {}
     };
 }
