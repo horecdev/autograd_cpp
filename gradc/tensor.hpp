@@ -176,10 +176,11 @@ namespace gradc {
                 if (m_shape.empty()) {
                     Tensor scalar_tensor = Tensor(std::vector<size_t>{});
                     (*scalar_tensor.m_data)[0] = (*m_data)[m_offset];
+                    return scalar_tensor;
                 }
                 Tensor new_contiguous = Tensor(m_shape); // already right size and right contiguous strides
                 size_t n_dims = m_shape.size();
-                std::vector<size_t> odometer(n_dims); // zeroed out
+                std::vector<size_t> odometer(n_dims, 0); // zeroed out
                 size_t contiguous_idx = 0;
                 while (odometer[0] < m_shape[0]) {
                     size_t strided_idx = m_offset;
@@ -283,84 +284,189 @@ namespace gradc {
                 return reshaped_tensor;
             }
 
-        Tensor broadcast_to(const std::vector<size_t>& target_shape) const {
-            int64_t n_dim_orig = static_cast<int64_t>(m_shape.size());
-            int64_t n_dim_target = static_cast<int64_t>(target_shape.size());
-            std::vector<size_t> new_shape = std::vector<size_t>(n_dim_target);
-            std::vector<size_t> new_strides = std::vector<size_t>(n_dim_target);
+            Tensor broadcast_to(const std::vector<size_t>& target_shape) const {
+                int64_t n_dim_orig = static_cast<int64_t>(m_shape.size());
+                int64_t n_dim_target = static_cast<int64_t>(target_shape.size());
+                std::vector<size_t> new_shape = std::vector<size_t>(n_dim_target);
+                std::vector<size_t> new_strides = std::vector<size_t>(n_dim_target);
 
-            // align to the right
-            for (int64_t i = 0; i < n_dim_orig; ++i) {
-                new_shape[i + (n_dim_target - n_dim_orig)] = m_shape[i];
-                new_strides[i + (n_dim_target - n_dim_orig)] = m_strides[i];
-            }
-            for (int64_t i = n_dim_target - n_dim_orig - 1; i >= 0; --i) { // fill leftovers (dont even have to check later)
-                new_shape[i] = target_shape[i];
-                new_strides[i] = 0;
-            }
-
-            for (size_t i = (n_dim_target - n_dim_orig); i < n_dim_target; ++i) {
-                if (target_shape[i] == new_shape[i]) {
-                    // literally leave everything as is
+                // align to the right
+                for (int64_t i = 0; i < n_dim_orig; ++i) {
+                    new_shape[i + (n_dim_target - n_dim_orig)] = m_shape[i];
+                    new_strides[i + (n_dim_target - n_dim_orig)] = m_strides[i];
                 }
-                else if (new_shape[i] == 1) {
+                for (int64_t i = n_dim_target - n_dim_orig - 1; i >= 0; --i) { // fill leftovers (dont even have to check later)
                     new_shape[i] = target_shape[i];
                     new_strides[i] = 0;
                 }
-                else {
-                    throw std::runtime_error("Violated broadcasting rules in .broadcast_to().");
+
+                for (size_t i = (n_dim_target - n_dim_orig); i < n_dim_target; ++i) {
+                    if (target_shape[i] == new_shape[i]) {
+                        // literally leave everything as is
+                    }
+                    else if (new_shape[i] == 1) {
+                        new_shape[i] = target_shape[i];
+                        new_strides[i] = 0;
+                    }
+                    else {
+                        throw std::runtime_error("Violated broadcasting rules in .broadcast_to().");
+                    }
                 }
+
+                return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_data);
             }
 
-            return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_data);
-        }
+            std::vector<size_t> infer_broadcast(const std::vector<size_t>& a, const std::vector<size_t>& b) const { // only infers target shape
+                size_t size_a = a.size();
+                size_t size_b = b.size();
 
-        std::vector<size_t> infer_broadcast(const std::vector<size_t>& a, const std::vector<size_t>& b) const { // only infers target shape
-            size_t size_a = a.size();
-            size_t size_b = b.size();
+                std::vector<size_t> infered_shape(std::max(size_a, size_b));
+                
+                if (size_a >= size_b) {
+                    for (size_t b_idx = 0; b_idx < size_b; ++b_idx) {
+                        size_t a_idx = b_idx + (size_a - size_b);
+                        size_t shape_a = a[a_idx];
+                        size_t shape_b = b[b_idx];
+                        if (shape_a == shape_b) {
+                            infered_shape[a_idx] = shape_a;
+                        }
+                        else if (shape_a == 1 || shape_b == 1) {
+                            infered_shape[a_idx] = std::max(shape_a, shape_b);
+                        }
+                        else {
+                            throw std::runtime_error("Incompatible shapes for broadcasting.");
+                        }
+                    }
+                    for (size_t a_idx = 0; a_idx < (size_a - size_b); ++a_idx) {
+                        infered_shape[a_idx] = a[a_idx];
+                    }
+                }
+                else if (size_a < size_b) {
+                    for (size_t a_idx = 0; a_idx < size_a; ++a_idx) {
+                        size_t b_idx = a_idx + (size_b - size_a);
+                        size_t shape_a = a[a_idx];
+                        size_t shape_b = b[b_idx];
+                        if (shape_a == shape_b) {
+                            infered_shape[b_idx] = shape_b;
+                        }
+                        else if (shape_a == 1 || shape_b == 1) {
+                            infered_shape[b_idx] = std::max(shape_a, shape_b);
+                        }
+                        else {
+                            throw std::runtime_error("Incompatible shapes for broadcasting.");
+                        }
+                    }
+                    for (size_t b_idx = 0; b_idx < (size_b - size_a); ++b_idx) {
+                        infered_shape[b_idx] = b[b_idx];
+                    }
+                }
 
-            std::vector<size_t> infered_shape(std::max(size_a, size_b));
+                return infered_shape;   
+            }   
             
-            if (size_a >= size_b) {
-                for (size_t b_idx = 0; b_idx < size_b; ++b_idx) {
-                    size_t a_idx = b_idx + (size_a - size_b);
-                    size_t shape_a = a[a_idx];
-                    size_t shape_b = b[b_idx];
-                    if (shape_a == shape_b) {
-                        infered_shape[a_idx] = shape_a;
+            Tensor& operator+=(const Tensor& other) {
+                // Idea behind all the variables - track right variables instead of copying vectors on the heap inside copied Tensors.
+                // (you would have to either create a tensor or copy it to hold a variable (or worse - write main logic twice) - why not ONLY create if needed?)
+                const std::vector<size_t>* other_strides; // promise not to modify data, not reassign the pointer
+                size_t other_offset;
+                std::shared_ptr<std::vector<T>> other_data;
+
+                Tensor broad_other;
+                if (m_shape == other.m_shape) {
+                    other_strides = &other.m_strides;
+                    other_offset = other.m_offset;
+                    other_data = other.m_data; // shared ptr
+                }
+                else {
+                    broad_other = other.broadcast_to(m_shape);
+
+                    other_strides = &broad_other.m_strides;
+                    other_offset = broad_other.m_offset;
+                    other_data = broad_other.m_data; // all stuff that increments shared_ptr dies at the end of function.
+                }
+
+                size_t n_dims = m_shape.size();
+                std::vector<size_t> odometer(n_dims, 0);
+                while (odometer[0] < m_shape[0]) {
+                    size_t this_strided_idx = m_offset; 
+                    size_t other_strided_idx = other_offset;
+
+                    for (size_t i = 0; i < n_dims; ++i) {
+                        this_strided_idx += odometer[i] * m_strides[i];
+                        other_strided_idx += odometer[i] * (*other_strides)[i];
                     }
-                    else if (shape_a == 1 || shape_b == 1) {
-                        infered_shape[a_idx] = std::max(shape_a, shape_b);
-                    }
-                    else {
-                        throw std::runtime_error("Incompatible shapes for broadcasting.");
+                    (*m_data)[this_strided_idx] += (*other_data)[other_strided_idx];
+                    ++odometer[n_dims - 1];
+                    size_t i = n_dims - 1;
+                    while ((odometer[i] == m_shape[i]) && i > 0) {
+                        odometer[i] = 0;
+                        ++odometer[i - 1];
+                        --i;
                     }
                 }
-                for (size_t a_idx = 0; a_idx < (size_a - size_b); ++a_idx) {
-                    infered_shape[a_idx] = a[a_idx];
-                }
-            }
-            else if (size_a < size_b) {
-                for (size_t a_idx = 0; a_idx < size_a; ++a_idx) {
-                    size_t b_idx = a_idx + (size_b - size_a);
-                    size_t shape_a = a[a_idx];
-                    size_t shape_b = b[b_idx];
-                    if (shape_a == shape_b) {
-                        infered_shape[b_idx] = shape_b;
-                    }
-                    else if (shape_a == 1 || shape_b == 1) {
-                        infered_shape[b_idx] = std::max(shape_a, shape_b);
-                    }
-                    else {
-                        throw std::runtime_error("Incompatible shapes for broadcasting.");
-                    }
-                }
-                for (size_t b_idx = 0; b_idx < (size_b - size_a); ++b_idx) {
-                    infered_shape[b_idx] = b[b_idx];
-                }
+                return *this;
             }
 
-            return infered_shape;   
-        }   
+            Tensor operator+(const Tensor& other) const {
+                const std::vector<size_t>* this_strides = &m_strides;
+                const std::vector<size_t>* other_strides = &other.m_strides;
+                size_t this_offset = m_offset;
+                size_t other_offset = other.m_offset; 
+                std::shared_ptr<std::vector<T>> this_data = m_data;
+                std::shared_ptr<std::vector<T>> other_data = other.m_data;
+
+                Tensor broad_this;
+                Tensor broad_other;
+
+                std::vector<size_t> target_shape; 
+
+                if (m_shape != other.m_shape) {
+                    target_shape = infer_broadcast(m_shape, other.m_shape); // crashes if incompatible
+
+                    if (m_shape != target_shape) {
+                        broad_this = this->broadcast_to(target_shape);
+
+                        this_strides = &broad_this.m_strides;
+                        this_offset = broad_this.m_offset;
+                        this_data = broad_this.m_data;
+                    }
+                    if (other.m_shape != target_shape) {
+                        broad_other = other.broadcast_to(target_shape);
+
+                        other_strides = &broad_other.m_strides;
+                        other_offset = broad_other.m_offset;
+                        other_data = broad_other.m_data;
+                    }
+                }
+                else {
+                    target_shape = m_shape;
+                }
+
+                Tensor result = Tensor(target_shape);
+
+                size_t n_dims = target_shape.size();
+                std::vector<size_t> odometer(n_dims, 0);
+                size_t contiguous_idx = 0;
+                while (odometer[0] < target_shape[0]) {
+                    size_t this_strided_idx = this_offset; 
+                    size_t other_strided_idx = other_offset;
+
+                    for (size_t i = 0; i < n_dims; ++i) {
+                        this_strided_idx += odometer[i] * (*this_strides)[i];
+                        other_strided_idx += odometer[i] * (*other_strides)[i];
+                    }
+                    (*result.m_data)[contiguous_idx] = (*this_data)[this_strided_idx] + (*other_data)[other_strided_idx];
+                    ++contiguous_idx;
+                    ++odometer[n_dims - 1];
+                    size_t i = n_dims - 1;
+                    while ((odometer[i] == target_shape[i]) && i > 0) {
+                        odometer[i] = 0;
+                        ++odometer[i - 1];
+                        --i;
+                    }
+                }
+
+                return result;
+            }
     };
 }
