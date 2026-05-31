@@ -44,6 +44,7 @@ namespace gradc {
             std::vector<size_t> m_strides;
             size_t m_offset;
             std::shared_ptr<std::vector<T>> m_data;
+            std::vector<T> m_grad;
         
         public:
             // LIFECYCLE 
@@ -468,5 +469,32 @@ namespace gradc {
 
                 return result;
             }
+    };
+    
+    template <typename T>
+    class Node {
+        public:
+            virtual T forward() = 0;
+            virtual T backward() = 0;
+
+            virtual ~Node() {
+
+            }
+    };
+
+    template <typename T>
+    class TensorNode {
+        Tensor<T> tensor;
+    };
+
+    template <typename T>
+    class AddNode { // must hold pointers, not just raw TensorNode. If a, b are declared somewhere, then do a + b (inside some scope) and save a, b, when 
+        // AddNode dies, it totally wipes a, b shape/stride/offset.
+        // If you wrap a, b inside pointers - their ref count is 1, then 2, then 1.
+        private:
+            std::shared_ptr<Node<T>> left;
+            std::shared_ptr<Node<T>> right;
+
+
     };
 }
