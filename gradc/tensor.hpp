@@ -199,7 +199,7 @@ namespace gradc {
                 return new_contiguous;
             }
 
-            Tensor transpose(const size_t dim0, const size_t dim1) {
+            Tensor transpose(const size_t dim0, const size_t dim1) const {
                 std::vector<size_t> new_shape = m_shape;
                 std::vector<size_t> new_strides = m_strides;
                 size_t temp = new_shape[dim0];
@@ -209,10 +209,10 @@ namespace gradc {
                 new_strides[dim0] = new_strides[dim1];
                 new_strides[dim1] = temp;
 
-                return  Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_data);
+                return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_data);
             }
 
-            Tensor permute(const std::vector<int64_t>& axes) {
+            Tensor permute(const std::vector<int64_t>& axes) const {
                 size_t n_dim = m_shape.size();
                 std::cout << axes.size() << " " << n_dim << std::endl;
                 if (axes.size() != n_dim) {
@@ -231,7 +231,7 @@ namespace gradc {
                 return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_data);
             }
 
-            Tensor reshape(const std::vector<int64_t>& target_shape) {
+            Tensor reshape(const std::vector<int64_t>& target_shape) const {
                 std::vector<size_t> new_shape = std::vector<size_t>(target_shape.size());
                 std::vector<size_t> new_strides = std::vector<size_t>(target_shape.size());
                 size_t total_volume = 1;
@@ -277,12 +277,48 @@ namespace gradc {
                 }
 
                 Tensor reshaped_tensor = this->contiguous(); // contiguous is shape-sensitive (if sliced then only slice is made contiguous)
-                reshaped_tensor.m_shape = new_shape;
-                reshaped_tensor.m_strides = new_strides;
+                reshaped_tensor.m_shape = std::move(new_shape);
+                reshaped_tensor.m_strides = std::move(new_strides);
 
                 return reshaped_tensor;
             }
 
-        Tensor broadcast_to() {}
+        Tensor broadcast_to(const std::vector<size_t>& target_shape) const {
+            int64_t n_dim_orig = static_cast<int64_t>(m_shape.size());
+            int64_t n_dim_target = static_cast<int64_t>(target_shape.size());
+            std::vector<size_t> new_shape = std::vector<size_t>(n_dim_target);
+            std::vector<size_t> new_strides = std::vector<size_t>(n_dim_target);
+
+            // align to the right
+            for (int64_t i = 0; i < n_dim_orig; ++i) {
+                new_shape[i + (n_dim_target - n_dim_orig)] = m_shape[i];
+                new_strides[i + (n_dim_target - n_dim_orig)] = m_strides[i];
+            }
+            for (int64_t i = n_dim_target - n_dim_orig - 1; i >= 0; --i) { // fill leftovers (dont even have to check later)
+                new_shape[i] = target_shape[i];
+                new_strides[i] = 0;
+            }
+
+            for (size_t i = (n_dim_target - n_dim_orig); i < n_dim_target; ++i) {
+                if (target_shape[i] == new_shape[i]) {
+                    // literally leave everything as is
+                }
+                else if (new_shape[i] == 1) {
+                    new_shape[i] = target_shape[i];
+                    new_strides[i] = 0;
+                }
+                else {
+                    throw std::runtime_error("Violated broadcasting rules in .broadcast_to().");
+                }
+            }
+
+            return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_data);
+        }
+
+        std::vector<size_t> infer_broadcast(const std::vector<size_t>& a, const std::vector<size_t>& b) const {
+            size_t size_a = a.size();
+            size_t size_b = b.size();
+            
+        }
     };
 }
