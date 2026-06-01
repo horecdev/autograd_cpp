@@ -36,10 +36,12 @@ namespace gradc {
         : m_shape(source.m_shape), m_strides(source.m_strides), m_offset(source.m_offset), m_data(source.m_data) {} // copy constructor (shallow copy) [Tensor b = a]
         // boosts ref count by 1 (shallow copy)
 
-    Tensor(Tensor&& source) // move constructor [Tensor c = a + b]
+    template <typename T>
+    Tensor<T>::Tensor(Tensor&& source) // move constructor [Tensor c = a + b]
         : m_shape(std::move(source.m_shape)), m_strides(std::move(source.m_strides)), m_offset(source.m_offset), m_data(std::move(source.m_data)) {}
 
-    Tensor& operator=(const Tensor& source) { // copy assignment operator [c = b]
+    template <typename T>
+    Tensor<T>& Tensor<T>::operator=(const Tensor& source) { // copy assignment operator [c = b]
         if (this != &source) {
             m_shape = source.m_shape;
             m_strides = source.m_strides;
@@ -51,7 +53,8 @@ namespace gradc {
         return *this;
     }
 
-    Tensor& operator=(Tensor&& source) { // move assignment operator [a = b + c]
+    template <typename T>
+    Tensor<T>& Tensor<T>::operator=(Tensor&& source) { // move assignment operator [a = b + c]
         if (this != &source) { // [a = transpose(a)], and transpose modifies it in-place, then it would trigger
             m_shape = std::move(source.m_shape);
             m_strides = std::move(source.m_strides);
@@ -61,7 +64,8 @@ namespace gradc {
         return *this;
     }
 
-    Tensor clone() const {
+    template <typename T>
+    Tensor<T> Tensor<T>::clone() const {
         // *m_data is forwarded straight into vector construction zone. Sees a vector entering (*m_data is a vector) and triggers a totally new vector construction (new heap memory)
         auto ptr = std::make_shared<std::vector<T>>(*m_data); // shared_ptr pointing to a new vector with copied data. (ref_count = 1)
         return Tensor(m_shape, m_strides, m_offset, std::move(ptr));
