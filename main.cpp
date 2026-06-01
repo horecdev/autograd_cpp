@@ -1,8 +1,13 @@
 #include <iostream>
-#include <vector>
 #include "gradc/tensor.hpp"
 
+using namespace gradc;
+
 int main() {
-    gradc::Tensor<float> tens(std::vector<size_t>{4, 3 ,2});
-    tens.permute({2, 0, 1});
+    Tensor<float> a({2, 2});
+    Tensor<float> b({2, 2});
+    std::cout << "Before add" << std::endl;
+    a += b;
+    std::cout << "The Engine Compiles." << std::endl;
+    return 0;
 }
