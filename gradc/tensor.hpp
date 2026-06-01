@@ -321,7 +321,7 @@ namespace gradc {
                 size_t size_a = a.size();
                 size_t size_b = b.size();
 
-                std::vector<size_t> infered_shape(std::max(size_a, size_b));
+                std::vector<size_t> inferred_shape(std::max(size_a, size_b));
                 
                 if (size_a >= size_b) {
                     for (size_t b_idx = 0; b_idx < size_b; ++b_idx) {
@@ -329,17 +329,17 @@ namespace gradc {
                         size_t shape_a = a[a_idx];
                         size_t shape_b = b[b_idx];
                         if (shape_a == shape_b) {
-                            infered_shape[a_idx] = shape_a;
+                            inferred_shape[a_idx] = shape_a;
                         }
                         else if (shape_a == 1 || shape_b == 1) {
-                            infered_shape[a_idx] = std::max(shape_a, shape_b);
+                            inferred_shape[a_idx] = std::max(shape_a, shape_b);
                         }
                         else {
                             throw std::runtime_error("Incompatible shapes for broadcasting.");
                         }
                     }
                     for (size_t a_idx = 0; a_idx < (size_a - size_b); ++a_idx) {
-                        infered_shape[a_idx] = a[a_idx];
+                        inferred_shape[a_idx] = a[a_idx];
                     }
                 }
                 else if (size_a < size_b) {
@@ -348,24 +348,25 @@ namespace gradc {
                         size_t shape_a = a[a_idx];
                         size_t shape_b = b[b_idx];
                         if (shape_a == shape_b) {
-                            infered_shape[b_idx] = shape_b;
+                            inferred_shape[b_idx] = shape_b;
                         }
                         else if (shape_a == 1 || shape_b == 1) {
-                            infered_shape[b_idx] = std::max(shape_a, shape_b);
+                            inferred_shape[b_idx] = std::max(shape_a, shape_b);
                         }
                         else {
                             throw std::runtime_error("Incompatible shapes for broadcasting.");
                         }
                     }
                     for (size_t b_idx = 0; b_idx < (size_b - size_a); ++b_idx) {
-                        infered_shape[b_idx] = b[b_idx];
+                        inferred_shape[b_idx] = b[b_idx];
                     }
                 }
 
-                return infered_shape;   
+                return inferred_shape;   
             }   
             
-            Tensor& operator+=(const Tensor& other) {
+            template <typename Func>
+            Tensor& apply_in_place(const Tensor& other, Func op) {
                 // Idea behind all the variables - track right variables instead of copying vectors on the heap inside copied Tensors.
                 // (you would have to either create a tensor or copy it to hold a variable (or worse - write main logic twice) - why not ONLY create if needed?)
                 const std::vector<size_t>* other_strides; // promise not to modify data, not reassign the pointer
@@ -396,7 +397,7 @@ namespace gradc {
                         this_strided_idx += odometer[i] * m_strides[i];
                         other_strided_idx += odometer[i] * (*other_strides)[i];
                     }
-                    (*m_data)[this_strided_idx] += (*other_data)[other_strided_idx];
+                    op((*m_data)[this_strided_idx], (*other_data)[other_strided_idx]);
                     ++odometer[n_dims - 1];
                     size_t i = n_dims - 1;
                     while ((odometer[i] == m_shape[i]) && i > 0) {
@@ -408,7 +409,8 @@ namespace gradc {
                 return *this;
             }
 
-            Tensor operator+(const Tensor& other) const {
+            template <typename Func>
+            Tensor apply_out_of_place(const Tensor& other, Func op) const {
                 const std::vector<size_t>* this_strides = &m_strides;
                 const std::vector<size_t>* other_strides = &other.m_strides;
                 size_t this_offset = m_offset;
@@ -456,7 +458,7 @@ namespace gradc {
                         this_strided_idx += odometer[i] * (*this_strides)[i];
                         other_strided_idx += odometer[i] * (*other_strides)[i];
                     }
-                    (*result.m_data)[contiguous_idx] = (*this_data)[this_strided_idx] + (*other_data)[other_strided_idx];
+                    (*result.m_data)[contiguous_idx] = op((*this_data)[this_strided_idx], (*other_data)[other_strided_idx]); // copied straight into CPU registers
                     ++contiguous_idx;
                     ++odometer[n_dims - 1];
                     size_t i = n_dims - 1;
@@ -469,11 +471,45 @@ namespace gradc {
 
                 return result;
             }
+
+            Tensor& operator+=(const Tensor& other) {
+                return apply_in_place(other, [](T &a, T b){a += b;});
+            }
+
+            Tensor operator+(const Tensor& other) const {
+                return apply_out_of_place(other, [](T a, T b) {return a + b;});
+            }
+
+            Tensor& operator-=(const Tensor& other) {
+                return apply_in_place(other, [](T &a, T b){a -= b;});
+            }
+
+            Tensor operator-(const Tensor& other) const {
+                return apply_out_of_place(other, [](T a, T b) {return a - b;});
+            }
+
+            Tensor& operator*=(const Tensor& other) {
+                return apply_in_place(other, [](T &a, T b){a *= b;});
+            }
+
+            Tensor operator*(const Tensor& other) const {
+                return apply_out_of_place(other, [](T a, T b) {return a * b;});
+            }
+
+
+            Tensor& operator/=(const Tensor& other) {
+                return apply_in_place(other, [](T &a, T b){a /= b;});
+            }
+
+            Tensor operator/(const Tensor& other) const {
+                return apply_out_of_place(other, [](T a, T b) {return a / b;});
+            }
     };
     
     template <typename T>
     class Node {
         public:
+            Tensor<T> m_grad;
             virtual T forward() = 0;
             virtual T backward() = 0;
 
@@ -483,18 +519,50 @@ namespace gradc {
     };
 
     template <typename T>
-    class TensorNode {
-        Tensor<T> tensor;
+    class TensorNode : public Node<T> {
+        private:
+            Tensor<T> m_tensor;
+        public:
+            Tensor<T> forward() const override {
+                return m_tensor;
+            }
+
+            void backward() const override {
+                
+            }
     };
 
     template <typename T>
-    class AddNode { // must hold pointers, not just raw TensorNode. If a, b are declared somewhere, then do a + b (inside some scope) and save a, b, when 
+    class AddNode : public Node<T> { // must hold pointers, not just raw TensorNode. If a, b are declared somewhere, then do a + b (inside some scope) and save a, b, when 
         // AddNode dies, it totally wipes a, b shape/stride/offset.
         // If you wrap a, b inside pointers - their ref count is 1, then 2, then 1.
         private:
-            std::shared_ptr<Node<T>> left;
-            std::shared_ptr<Node<T>> right;
+            std::shared_ptr<Node<T>> m_left;
+            std::shared_ptr<Node<T>> m_right;
+        public:
+            Tensor<T> forward() const override {
+                return m_left->eval() + m_right->eval();
+            }
 
+            void backward() const override { // by the time node.backward() is called, its m_grad is already fully populated
+                (*m_left).m_grad += m_grad;
+                (*m_right).m_grad += m_grad;
+            }
+    };
 
+    template <typename T>
+    class MulNode : public Node<T> {
+        private:
+            std::shared_ptr<Node<T>> m_left;
+            std::shared_ptr<Node<T>> m_right;
+        public:
+            Tensor<T> forward() const override {
+                return m_left->eval() * m_right->eval();
+            }
+
+            void backward() const override { // by the time node.backward() is called, its m_grad is already fully populated
+                (*m_left).m_grad += m_grad * (*m_right.);
+                (*m_right).m_grad += m_grad;
+            }
     };
 }
