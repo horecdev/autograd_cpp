@@ -28,6 +28,9 @@ namespace gradc {
     struct LazyTag{};
     inline constexpr LazyTag lazy = LazyTag();
 
+    template <typename T>
+    class Node;
+
     struct IndexDesc {
         bool m_is_all;
         int64_t m_value;
@@ -38,9 +41,6 @@ namespace gradc {
         IndexDesc(Placeholder) 
             : m_value(0), m_is_all(true) {}
     };
-
-    template <typename T>
-    class Node;
 
     template <typename T>
     struct Storage{
@@ -85,15 +85,16 @@ namespace gradc {
             std::vector<size_t> m_strides;
             size_t m_offset;
             std::shared_ptr<Storage<T>> m_storage;
-            bool m_requires_grad;
-            std::shared_ptr<Node<T>> m_op = nullptr;
-            std::shared_ptr<Tensor<T>> m_grad;
+            //bool m_requires_grad;
+            std::shared_ptr<Node<T>> m_op; // if its a not a shared_ptr you get (2^N) exponential growth of tree with each op 
+            // (to copy a tensor you copy a node and to copy node you copy a tensor...)
         
         public:
             Tensor& realize() {
-                if (this->m_storage->m_data.empty() && this->m_op != nullptr) { // do I need to do math AND I know how to do math?
-                    Tensor computed_result = this->m_op->realize();
-                    this->m_storage->m_data = std::move(computed_result.m_storage->m_data);
+                if (m_storage->m_data.empty() && m_op != nullptr) { // do I need to do math AND I know how to do math?
+                    Tensor computed_result = m_op->realize();
+                    m_storage->m_data = std::move(computed_result.m_storage->m_data);
+                    m_shape = std::move(computed_result.m_shape);
                 }
 
                 return *this;
@@ -102,7 +103,7 @@ namespace gradc {
             Tensor();
             Tensor(std::vector<size_t> shape);
             Tensor(std::vector<size_t> shape, LazyTag);
-            Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<Storage<T>> data);
+            Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<Storage<T>> data, std::shared_ptr<Node<T>> op);
             ~Tensor();
             Tensor(const Tensor& source);
             Tensor(Tensor&& source);
@@ -145,17 +146,17 @@ namespace gradc {
             template <typename Func>
             Tensor apply_out_of_place(const Tensor& other, Func op) const;
 
-            Tensor& operator+=(const Tensor& other);
-            Tensor operator+(const Tensor& other) const;
+            //Tensor& operator+=(const Tensor& other);
+            //Tensor operator+(const Tensor& other) const;
 
-            Tensor& operator-=(const Tensor& other);
-            Tensor operator-(const Tensor& other) const;
+            // Tensor& operator-=(const Tensor& other);
+            // Tensor operator-(const Tensor& other) const;
 
-            Tensor& operator*=(const Tensor& other);
-            Tensor operator*(const Tensor& other) const;
+            //Tensor& operator*=(const Tensor& other);
+            //Tensor operator*(const Tensor& other) const;
 
-            Tensor& operator/=(const Tensor& other);
-            Tensor operator/(const Tensor& other) const;
+            // Tensor& operator/=(const Tensor& other);
+            // Tensor operator/(const Tensor& other) const;
     };
 } 
 

@@ -121,7 +121,7 @@ namespace gradc {
         }
         
         if (this->is_contiguous()) { // cannot reshape a non-contiguous tensor.
-            return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_storage);
+            return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_storage, m_op);
         }
 
         Tensor reshaped_tensor = this->contiguous(); // contiguous is shape-sensitive (if sliced then only slice is made contiguous)

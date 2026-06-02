@@ -112,19 +112,47 @@ namespace gradc {
         return result;
     }
 
-    // TODO: Move math operations out of .math and into graphs. Math just creates the graph, Node.forward() executes the math.
     template <typename T>
     class AddNode : public Node<T> {
         private:
             Tensor<T> m_left;
             Tensor<T> m_right;
         public:
+            AddNode<T>(Tensor<T> left, Tensor<T> right) : m_left(std::move(left)), m_right(std::move(right)) {}
+            
             Tensor<T> realize() {
-                m_left.eval();
-                m_right.eval();
+                m_left.realize();
+                m_right.realize();
                 return apply_out_of_place(m_left, m_right, [](T a, T b) {return a + b;});
             }
 
             void backward() {}
+    };
+
+    template <typename T>
+    class MulNode : public Node<T> {
+        private:
+            Tensor<T> m_left;
+            Tensor<T> m_right;
+        public:
+            MulNode<T>(Tensor<T> left, Tensor<T> right) : m_left(std::move(left)), m_right(std::move(right)) {}
+            
+            Tensor<T> realize() {
+                m_left.realize();
+                m_right.realize();
+                return apply_out_of_place(m_left, m_right, [](T a, T b) {return a * b;});
+            }
+
+            void backward() {}
+    };
+
+    template <typename T>
+    class CloneNode : public Node<T> {
+
+    };
+
+    template <typename T>
+    class ReshapeNode : public Node<T> {
+
     };
 }
