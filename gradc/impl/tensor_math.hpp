@@ -9,20 +9,20 @@ namespace gradc {
         // (you would have to either create a tensor or copy it to hold a variable (or worse - write main logic twice) - why not ONLY create if needed?)
         const std::vector<size_t>* other_strides; // promise not to modify data, not reassign the pointer
         size_t other_offset;
-        std::shared_ptr<std::vector<T>> other_data;
+        std::shared_ptr<Storage<T>> other_storage;
 
-        Tensor broad_other; // inside Tensor<T>:: space, "Tensor" is replaced with "Tensor<T>"
+        Tensor broad_other; // inside Tensor<T>:: space, "Tensor" is replaced with "Tensor<T>" during compilation
         if (m_shape == other.m_shape) {
             other_strides = &other.m_strides;
             other_offset = other.m_offset;
-            other_data = other.m_data; // shared ptr
+            other_storage = other.m_storage; // shared ptr
         }
         else {
             broad_other = other.broadcast_to(m_shape);
 
             other_strides = &broad_other.m_strides;
             other_offset = broad_other.m_offset;
-            other_data = broad_other.m_data; // all stuff that increments shared_ptr dies at the end of function.
+            other_storage = broad_other.m_storage; // all stuff that increments shared_ptr dies at the end of function.
         }
 
         size_t n_dims = m_shape.size();
@@ -35,7 +35,7 @@ namespace gradc {
                 this_strided_idx += odometer[i] * m_strides[i];
                 other_strided_idx += odometer[i] * (*other_strides)[i];
             }
-            op((*m_data)[this_strided_idx], (*other_data)[other_strided_idx]);
+            op(((*m_storage).m_data)[this_strided_idx], ((*other_storage).m_data)[other_strided_idx]);
             ++odometer[n_dims - 1];
             size_t i = n_dims - 1;
             while ((odometer[i] == m_shape[i]) && i > 0) {
@@ -44,6 +44,7 @@ namespace gradc {
                 --i;
             }
         }
+        ++m_storage->m_version;
         return *this;
     }
 
@@ -54,8 +55,8 @@ namespace gradc {
         const std::vector<size_t>* other_strides = &other.m_strides;
         size_t this_offset = m_offset;
         size_t other_offset = other.m_offset; 
-        std::shared_ptr<std::vector<T>> this_data = m_data;
-        std::shared_ptr<std::vector<T>> other_data = other.m_data;
+        std::shared_ptr<Storage<T>> this_storage = m_storage;
+        std::shared_ptr<Storage<T>> other_storage = other.m_storage;
 
         Tensor broad_this;
         Tensor broad_other;
@@ -70,14 +71,14 @@ namespace gradc {
 
                 this_strides = &broad_this.m_strides;
                 this_offset = broad_this.m_offset;
-                this_data = broad_this.m_data;
+                this_storage = broad_this.m_storage;
             }
             if (other.m_shape != target_shape) {
                 broad_other = other.broadcast_to(target_shape);
 
                 other_strides = &broad_other.m_strides;
                 other_offset = broad_other.m_offset;
-                other_data = broad_other.m_data;
+                other_storage = broad_other.m_storage;
             }
         }
         else {
@@ -97,7 +98,7 @@ namespace gradc {
                 this_strided_idx += odometer[i] * (*this_strides)[i];
                 other_strided_idx += odometer[i] * (*other_strides)[i];
             }
-            (*result.m_data)[contiguous_idx] = op((*this_data)[this_strided_idx], (*other_data)[other_strided_idx]); // copied straight into CPU registers
+            ((*result.m_storage).m_data)[contiguous_idx] = op(((*this_storage).m_data)[this_strided_idx], ((*other_storage).m_data)[other_strided_idx]); // copied straight into CPU registers from RAM
             ++contiguous_idx;
             ++odometer[n_dims - 1];
             size_t i = n_dims - 1;

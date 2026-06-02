@@ -34,13 +34,13 @@ namespace gradc {
                 new_offset += static_cast<size_t>(coord) * m_strides[i];
             }
         }
-        return Tensor(std::move(new_shape), std::move(new_strides), new_offset, m_data); // backdoor construct shallow copy
+        return Tensor(std::move(new_shape), std::move(new_strides), new_offset, m_storage); // backdoor construct shallow copy
     }
 
     template <typename T>
     T Tensor<T>::item() const {
         if (m_shape.size() == 0) {
-            return (*m_data)[m_offset];
+            return ((*m_storage).m_data)[m_offset];
         }
         else {
             throw std::runtime_error(".item() can be called only on 0-dimensional tensors.");

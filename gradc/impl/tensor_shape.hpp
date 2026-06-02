@@ -19,7 +19,7 @@ namespace gradc {
     Tensor<T> Tensor<T>::contiguous() const {
         if (m_shape.empty()) {
             Tensor scalar_tensor = Tensor(std::vector<size_t>{});
-            (*scalar_tensor.m_data)[0] = (*m_data)[m_offset];
+            ((*scalar_tensor.m_storage).m_data)[0] = ((*m_storage).m_data)[m_offset];
             return scalar_tensor;
         }
         Tensor new_contiguous = Tensor(m_shape); // already right size and right contiguous strides
@@ -31,7 +31,7 @@ namespace gradc {
             for (size_t i = 0; i < n_dims; ++i) {
                 strided_idx += odometer[i] * m_strides[i];
             }
-            (*new_contiguous.m_data)[contiguous_idx] = (*m_data)[strided_idx];
+            ((*new_contiguous.m_storage).m_data)[contiguous_idx] = ((*m_storage).m_data)[strided_idx];
             ++contiguous_idx;
             ++odometer[n_dims - 1];
             size_t i = n_dims - 1;
@@ -55,7 +55,7 @@ namespace gradc {
         new_strides[dim0] = new_strides[dim1];
         new_strides[dim1] = temp;
 
-        return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_data);
+        return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_storage);
     }
 
     template <typename T>
@@ -75,7 +75,7 @@ namespace gradc {
             new_shape[target_ax] = m_shape[src_ax];
             new_strides[target_ax] = m_strides[src_ax];
         }
-        return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_data);
+        return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_storage);
     }
 
     template <typename T>
@@ -121,7 +121,7 @@ namespace gradc {
         }
         
         if (this->is_contiguous()) { // cannot reshape a non-contiguous tensor.
-            return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_data);
+            return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_storage);
         }
 
         Tensor reshaped_tensor = this->contiguous(); // contiguous is shape-sensitive (if sliced then only slice is made contiguous)
@@ -161,7 +161,7 @@ namespace gradc {
             }
         }
 
-        return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_data);
+        return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_storage);
     }
 
     template <typename T>

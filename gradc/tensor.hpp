@@ -38,8 +38,38 @@ namespace gradc {
 
     template <typename T>
     struct Storage{
-        std::shared_ptr<std::vector<T>> m_data;
+        std::vector<T> m_data;
         size_t m_version;
+
+        Storage() {
+            m_data = std::vector<T>{};
+            m_version = 0;
+        }
+
+        Storage(std::vector<T>&& data) : m_data(std::move(data)), m_version(0) {}
+        // If there is a new buffer - zero out the version.
+        Storage(const Storage& other) : m_data(other.m_data), m_version(0) {}
+        Storage(Storage&& other) : m_data(std::move(other.m_data)), m_version(0) {}
+        
+        Storage& operator=(const Storage& other) {
+            if (this != &other) {
+                m_data = other.m_data; // copy deep
+                m_version = 0;
+            }
+            return *this;
+
+        }
+        Storage& operator=(Storage&& other) {
+            if (this != &other) {
+                m_data = std::move(other.m_data);
+                m_version = 0;
+            }
+            return *this;
+        } 
+
+        ~Storage() {
+            std::cout << "Storage Destroyed" << std::endl;
+        }
     };
 
     template <typename T>
@@ -48,13 +78,13 @@ namespace gradc {
             std::vector<size_t> m_shape;
             std::vector<size_t> m_strides;
             size_t m_offset;
-            std::shared_ptr<std::vector<T>> m_data;
+            std::shared_ptr<Storage<T>> m_storage;
         
         public:
             // LIFECYCLE 
             Tensor();
             Tensor(std::vector<size_t> shape);
-            Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<std::vector<T>> data);
+            Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<Storage<T>> data);
             ~Tensor();
             Tensor(const Tensor& source);
             Tensor(Tensor&& source);
