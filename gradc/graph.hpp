@@ -5,7 +5,7 @@
 namespace gradc {
     // gotta redefine the exact type [since its outside template <typename T> of Tensor class]
     template <typename T, typename Func>
-    Tensor<T>& apply_in_place(const Tensor<T>& left, const Tensor<T>& right, Func op) { 
+    Tensor<T>& apply_in_place(Tensor<T>& left, const Tensor<T>& right, Func op) { 
         // Idea behind all the variables - track right variables instead of copying vectors on the heap inside copied Tensors.
         // (you would have to either create a tensor or copy it to hold a variable (or worse - write main logic twice) - why not ONLY create if needed?)
         const std::vector<size_t>* right_strides; // promise not to modify data, not reassign the pointer
@@ -50,7 +50,7 @@ namespace gradc {
     }
 
     template <typename T, typename Func>
-    Tensor<T> apply_out_of_place(Tensor<T>& left, const Tensor<T>& right, Func op) {
+    Tensor<T> apply_out_of_place(const Tensor<T>& left, const Tensor<T>& right, Func op) {
         const std::vector<size_t>* left_strides = &left.m_strides;
         const std::vector<size_t>* right_strides = &right.m_strides;
         size_t left_offset = left.m_offset;
@@ -116,11 +116,13 @@ namespace gradc {
     template <typename T>
     class AddNode : public Node<T> {
         private:
-            std::shared_ptr<Tensor<T>> m_left;
-            std::shared_ptr<Tensor<T>> m_right;
+            Tensor<T> m_left;
+            Tensor<T> m_right;
         public:
             Tensor<T> realize() {
-                return apply_out_of_place(m_left->realize(), m_right->realize(), [](T a, T b) {return a + b;});
+                m_left.eval();
+                m_right.eval();
+                return apply_out_of_place(m_left, m_right, [](T a, T b) {return a + b;});
             }
 
             void backward() {}

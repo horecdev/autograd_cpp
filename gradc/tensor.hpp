@@ -25,6 +25,9 @@ namespace gradc {
     struct Placeholder{};
     inline constexpr Placeholder _ = Placeholder(); // inline doesnt confuse linker if its #included in 2+ files.
 
+    struct LazyTag{};
+    inline constexpr LazyTag lazy = LazyTag();
+
     struct IndexDesc {
         bool m_is_all;
         int64_t m_value;
@@ -88,11 +91,17 @@ namespace gradc {
         
         public:
             Tensor& realize() {
+                if (this->m_storage->m_data.empty() && this->m_op != nullptr) { // do I need to do math AND I know how to do math?
+                    Tensor computed_result = this->m_op->realize();
+                    this->m_storage->m_data = std::move(computed_result.m_storage->m_data);
+                }
+
                 return *this;
             }
             // LIFECYCLE 
             Tensor();
             Tensor(std::vector<size_t> shape);
+            Tensor(std::vector<size_t> shape, LazyTag);
             Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<Storage<T>> data);
             ~Tensor();
             Tensor(const Tensor& source);
@@ -101,8 +110,6 @@ namespace gradc {
             Tensor& operator=(Tensor&& source);
             Tensor clone() const;
 
-
-            
             // INDEXING
             template <typename... Args>
             Tensor operator[](Args... args) const;

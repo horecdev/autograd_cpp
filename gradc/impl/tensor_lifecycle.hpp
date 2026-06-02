@@ -22,6 +22,22 @@ namespace gradc {
         }
 
     template <typename T>
+    Tensor<T>::Tensor(std::vector<size_t> shape, LazyTag) 
+        // can pass integer as m_strides, because it implicitly constructs a std::vector by just variable(arguments)
+        : m_shape(std::move(shape)), m_strides(m_shape.size()), m_offset(0) {
+            if (m_shape.size() == 0) { // a scalar (0-dimensional)
+                m_storage = std::make_shared<Storage<T>>(std::vector<T>(1));
+            }
+            else {
+                m_strides[m_shape.size() - 1] = 1; 
+                for (size_t i = m_shape.size() - 1; i > 0; --i) {
+                    m_strides[i - 1] = m_shape[i] * m_strides[i];
+                }
+                m_storage = std::make_shared<Storage<T>>(); // so that data modified in grad is reflected inside copies (when its copied in state 2 - promise)
+            }
+        }
+
+    template <typename T>
     Tensor<T>::Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<Storage<T>> storage) // backdoor
         : m_shape(std::move(shape)), m_strides(std::move(strides)), m_offset(offset), m_storage(std::move(storage)) {} 
     
