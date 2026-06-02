@@ -37,6 +37,9 @@ namespace gradc {
     };
 
     template <typename T>
+    class Node;
+
+    template <typename T>
     struct Storage{
         std::vector<T> m_data;
         size_t m_version;
@@ -79,8 +82,14 @@ namespace gradc {
             std::vector<size_t> m_strides;
             size_t m_offset;
             std::shared_ptr<Storage<T>> m_storage;
+            bool m_requires_grad;
+            std::shared_ptr<Node<T>> m_op = nullptr;
+            std::shared_ptr<Tensor<T>> m_grad;
         
         public:
+            Tensor& realize() {
+                return *this;
+            }
             // LIFECYCLE 
             Tensor();
             Tensor(std::vector<size_t> shape);
