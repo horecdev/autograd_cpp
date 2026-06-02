@@ -40,7 +40,7 @@ namespace gradc {
     template <typename T>
     T Tensor<T>::item() const {
         if (m_shape.size() == 0) {
-            return m_data[m_offset];
+            return (*m_data)[m_offset];
         }
         else {
             throw std::runtime_error(".item() can be called only on 0-dimensional tensors.");

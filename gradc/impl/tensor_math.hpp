@@ -1,7 +1,7 @@
 #pragma once
 #include "../tensor.hpp"
 
-namespace gradc { // TODO: broadcasting in in-place and out-of-place
+namespace gradc {
     template <typename T> // gotta redefine the exact type [since its outside template <typename T> of Tensor class]
     template <typename Func>
     Tensor<T>& Tensor<T>::apply_in_place(const Tensor<T>& other, Func op) { 

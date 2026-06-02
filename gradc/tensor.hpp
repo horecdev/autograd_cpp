@@ -37,6 +37,12 @@ namespace gradc {
     };
 
     template <typename T>
+    struct Storage{
+        std::shared_ptr<std::vector<T>> m_data;
+        size_t m_version;
+    };
+
+    template <typename T>
     class Tensor {
         private:
             std::vector<size_t> m_shape;
