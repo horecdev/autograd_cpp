@@ -116,7 +116,8 @@ namespace gradc {
             target_shape = left.m_shape;
         }
 
-        Tensor<T> new_tensor = Tensor<T>(target_shape, lazy);
+        bool requires_grad = left.m_requires_grad && right.m_requires_grad;
+        Tensor<T> new_tensor = Tensor<T>(target_shape, requires_grad, lazy);
         new_tensor.m_op = std::make_shared<AddNode<T>>(std::move(left), std::move(right), std::move(target_shape));
         return new_tensor;
     }
@@ -131,13 +132,18 @@ namespace gradc {
             target_shape = left.m_shape;
         }
 
-        Tensor<T> new_tensor = Tensor<T>(target_shape, lazy);
+        bool requires_grad = left.m_requires_grad && right.m_requires_grad;
+        Tensor<T> new_tensor = Tensor<T>(target_shape, requires_grad, lazy);
         new_tensor.m_op = std::make_shared<MulNode<T>>(std::move(left), std::move(right), std::move(target_shape));
         return new_tensor;
     }
 
     template <typename T>
     Tensor<T>& operator+=(Tensor<T>& main, Tensor<T> other) {
+        if (main.m_requires_grad && main.m_op == nullptr) {
+            throw std::runtime_error("Cannot mutate leaf tensor that requires gradients in-place.");
+        }
+
         std::vector<size_t> common_shape;
         if (main.m_shape != other.m_shape) { // Validates on the graph building
             if (!can_broadcast(other.m_shape, main.m_shape)) {
@@ -153,6 +159,10 @@ namespace gradc {
 
     template <typename T>
     Tensor<T>& operator*=(Tensor<T>& main, Tensor<T> other) {
+        if (main.m_requires_grad && main.m_op == nullptr) { // we are using toposort to get rid of temporary results using leaf nodes as a stop-point, and in-place math literally moves it inside the graph.
+            throw std::runtime_error("Cannot mutate leaf tensor that requires gradients in-place.");
+        }
+
         std::vector<size_t> common_shape;
         if (main.m_shape != other.m_shape) { // Validates on the graph building
             if (!can_broadcast(other.m_shape, main.m_shape)) {

@@ -85,10 +85,9 @@ namespace gradc {
             std::vector<size_t> m_strides;
             size_t m_offset;
             std::shared_ptr<Storage<T>> m_storage;
-            //bool m_requires_grad;
-            std::shared_ptr<Node<T>> m_op; // if its a not a shared_ptr you get (2^N) exponential growth of tree with each op 
-            // (to copy a tensor you copy a node and to copy node you copy a tensor...)
-        
+            std::shared_ptr<Node<T>> m_op; // if its a not a shared_ptr you get (2^N) exponential growth of tree with each op (to copy a tensor you copy a node and to copy node you copy a tensor...)
+            bool m_requires_grad;
+
         public:
             Tensor& realize() {
                 if (m_storage->m_data.empty() && m_op != nullptr) { // do I need to do math AND I know how to do math?
@@ -98,11 +97,12 @@ namespace gradc {
 
                 return *this;
             }
+
             // LIFECYCLE 
             Tensor();
             Tensor(std::vector<size_t> shape);
-            Tensor(std::vector<size_t> shape, LazyTag);
-            Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<Storage<T>> data, std::shared_ptr<Node<T>> op);
+            Tensor(std::vector<size_t> shape, bool requires_grad, LazyTag);
+            Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<Storage<T>> data, std::shared_ptr<Node<T>> op, bool requires_grad);
             ~Tensor();
             Tensor(const Tensor& source);
             Tensor(Tensor&& source);
@@ -128,6 +128,16 @@ namespace gradc {
 
             const std::size_t offset() const {
                 return m_offset;
+            }
+
+            const bool requires_grad() const {
+                return m_requires_grad;
+            }
+
+            // GETTERS
+
+            void set_requires_grad(bool value) {
+                m_requires_grad = value;
             }
 
             // SHAPES
