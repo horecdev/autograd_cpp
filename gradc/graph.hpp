@@ -5,7 +5,7 @@
 namespace gradc {
     // gotta redefine the exact type [since its outside template <typename T> of Tensor class]
     template <typename T, typename Func>
-    Tensor<T>& apply_in_place(Tensor<T>& left, const Tensor<T>& right, Func op) { 
+    void apply_in_place(Tensor<T>& left, const Tensor<T>& right, Func op) { 
         // Idea behind all the variables - track right variables instead of copying vectors on the heap inside copied Tensors.
         // (you would have to either create a tensor or copy it to hold a variable (or worse - write main logic twice) - why not ONLY create if needed?)
         const std::vector<size_t>* right_strides; // promise not to modify data, not reassign the pointer
@@ -46,11 +46,10 @@ namespace gradc {
             }
         }
         ++left.m_storage->m_version;
-        return left;
     }
 
     template <typename T, typename Func>
-    Tensor<T> apply_out_of_place(const Tensor<T>& left, const Tensor<T>& right, Func op) {
+    Tensor<T> apply_out_of_place(const Tensor<T>& left, const Tensor<T>& right, const std::vector<size_t>& target_shape, Func op) {
         const std::vector<size_t>* left_strides = &left.m_strides;
         const std::vector<size_t>* right_strides = &right.m_strides;
         size_t left_offset = left.m_offset;
@@ -61,29 +60,21 @@ namespace gradc {
         Tensor<T> broad_right;
         Tensor<T> broad_left;
 
-        std::vector<size_t> target_shape; 
+        if (left.m_shape != target_shape) {
+            broad_left = left.broadcast_to(target_shape);
 
-        if (left.m_shape != right.m_shape) {
-            target_shape = infer_broadcast(left.m_shape, right.m_shape); // crashes if incompatible
-
-            if (left.m_shape != target_shape) {
-                broad_left = left.broadcast_to(target_shape);
-
-                left_strides = &broad_left.m_strides;
-                left_offset = broad_left.m_offset;
-                left_storage = broad_left.m_storage;
-            }
-            if (right.m_shape != target_shape) {
-                broad_right = right.broadcast_to(target_shape);
-
-                right_strides = &broad_right.m_strides;
-                right_offset = broad_right.m_offset;
-                right_storage = broad_right.m_storage;
-            }
+            left_strides = &broad_left.m_strides;
+            left_offset = broad_left.m_offset;
+            left_storage = broad_left.m_storage;
         }
-        else {
-            target_shape = left.m_shape;
+        if (right.m_shape != target_shape) {
+            broad_right = right.broadcast_to(target_shape);
+
+            right_strides = &broad_right.m_strides;
+            right_offset = broad_right.m_offset;
+            right_storage = broad_right.m_storage;
         }
+        
 
         Tensor<T> result = Tensor<T>(target_shape);
 
@@ -117,13 +108,14 @@ namespace gradc {
         private:
             Tensor<T> m_left;
             Tensor<T> m_right;
+            std::vector<size_t> m_target_shape;
         public:
-            AddNode<T>(Tensor<T> left, Tensor<T> right) : m_left(std::move(left)), m_right(std::move(right)) {}
+            AddNode<T>(Tensor<T> left, Tensor<T> right, std::vector<size_t> target_shape) : m_left(std::move(left)), m_right(std::move(right)), m_target_shape(std::move(target_shape)) {}
             
             Tensor<T> realize() {
                 m_left.realize();
                 m_right.realize();
-                return apply_out_of_place(m_left, m_right, [](T a, T b) {return a + b;});
+                return apply_out_of_place(m_left, m_right, m_target_shape, [](T a, T b) {return a + b;});
             }
 
             void backward() {}
@@ -134,16 +126,49 @@ namespace gradc {
         private:
             Tensor<T> m_left;
             Tensor<T> m_right;
+            std::vector<size_t> m_target_shape;
         public:
-            MulNode<T>(Tensor<T> left, Tensor<T> right) : m_left(std::move(left)), m_right(std::move(right)) {}
+            MulNode<T>(Tensor<T> left, Tensor<T> right, std::vector<size_t> target_shape) : m_left(std::move(left)), m_right(std::move(right)), m_target_shape(std::move(target_shape)) {}
             
             Tensor<T> realize() {
                 m_left.realize();
                 m_right.realize();
-                return apply_out_of_place(m_left, m_right, [](T a, T b) {return a * b;});
+                return apply_out_of_place(m_left, m_right, m_target_shape, [](T a, T b) {return a * b;});
             }
 
             void backward() {}
+    };
+
+    template <typename T>
+    class InPlaceAddNode : public Node<T> {
+        private:
+            Tensor<T> m_left; // pre-addition tensor
+            Tensor<T> m_right; 
+        public:
+            InPlaceAddNode(Tensor<T> left, Tensor<T> right) : m_left(std::move(left)), m_right(std::move(right)) {}
+        
+            Tensor<T> realize() {
+                m_left.realize();
+                m_right.realize();
+                apply_in_place(m_left, m_right, [](T &a, T b){a += b;}); // version is bumped up, modifies m_left
+                return m_left;
+            }
+    };
+
+    template <typename T>
+    class InPlaceMulNode : public Node<T> {
+        private:
+            Tensor<T> m_left;
+            Tensor<T> m_right; 
+        public:
+            InPlaceMulNode(Tensor<T> left, Tensor<T> right) : m_left(std::move(left)), m_right(std::move(right)) {}
+        
+            Tensor<T> realize() {
+                m_left.realize();
+                m_right.realize();
+                apply_in_place(m_left, m_right, [](T &a, T b){a *= b;}); // version is bumped up, modifies m_left
+                return m_left;
+            }
     };
 
     template <typename T>

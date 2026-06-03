@@ -1,13 +1,11 @@
 #pragma once
 #include "../tensor.hpp"
 #include "../graph.hpp"
+#include <stdexcept>
 
 namespace gradc {
     
-    // template <typename T>
-    // Tensor<T>& Tensor<T>::operator+=(const Tensor<T>& other) {
-    //     return apply_in_place(other, [](T &a, T b){a += b;});
-    // }
+
     
     template <typename T>
     Tensor<T> operator+(Tensor<T> left, Tensor<T> right) {
@@ -20,14 +18,9 @@ namespace gradc {
         }
 
         Tensor<T> new_tensor = Tensor<T>(target_shape, lazy);
-        new_tensor.m_op = std::make_shared<AddNode<T>>(std::move(left), std::move(right));
+        new_tensor.m_op = std::make_shared<AddNode<T>>(std::move(left), std::move(right), std::move(target_shape));
         return new_tensor;
     }
-
-    // template <typename T>
-    // Tensor<T>& Tensor<T>::operator*=(const Tensor<T>& other) {
-    //     return apply_in_place(other, [](T &a, T b){a *= b;});
-    // }
 
     template <typename T>
     Tensor<T> operator*(Tensor<T> left, Tensor<T> right) {
@@ -44,26 +37,20 @@ namespace gradc {
         return new_tensor;
     }
 
+    template <typename T>
+    Tensor<T>& operator+=(Tensor<T>& main, Tensor<T> other) {
+        std::vector<size_t> common_shape;
+        if (main.m_shape != other.m_shape) { // Graph validator of shapes
+            common_shape = infer_broadcast(main.m_shape, other.m_shape);
+            if (common_shape != main.m_shape) {
+                throw std::runtime_error("LHS cannot expand its size during in-place math.");
+            }
+        }
+        Tensor<T> old_main = main; // copy history up to this point
+        main.m_op = std::make_shared<InPlaceAddNode<T>>(std::move(old_main), std::move(other));
+        
+        return main;
+    }
 
 
-    // template <typename T>
-    // Tensor<T>& Tensor<T>::operator-=(const Tensor<T>& other) {
-    //     return apply_in_place(other, [](T &a, T b){a -= b;});
-    // }
-
-    // template <typename T>
-    // Tensor<T> Tensor<T>::operator-(const Tensor<T>& other) const {
-    //     return apply_out_of_place(other, [](T a, T b) {return a - b;});
-    // }
-
-
-    // template <typename T>
-    // Tensor<T>& Tensor<T>::operator/=(const Tensor<T>& other) {
-    //     return apply_in_place(other, [](T &a, T b){a /= b;});
-    // }
-
-    // template <typename T>
-    // Tensor<T> Tensor<T>::operator/(const Tensor<T>& other) const {
-    //     return apply_out_of_place(other, [](T a, T b) {return a / b;});
-    // }
 }

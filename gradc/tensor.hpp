@@ -94,7 +94,6 @@ namespace gradc {
                 if (m_storage->m_data.empty() && m_op != nullptr) { // do I need to do math AND I know how to do math?
                     Tensor computed_result = m_op->realize();
                     m_storage->m_data = std::move(computed_result.m_storage->m_data);
-                    m_shape = std::move(computed_result.m_shape);
                 }
 
                 return *this;
@@ -141,11 +140,15 @@ namespace gradc {
             std::vector<size_t> infer_broadcast(const std::vector<size_t>& a, const std::vector<size_t>& b) const;
 
             // MATH
-            template <typename Func>
-            Tensor& apply_in_place(const Tensor& other, Func op);
-            template <typename Func>
-            Tensor apply_out_of_place(const Tensor& other, Func op) const;
+            template <typename U, typename Func> void apply_in_place(Tensor<U>& left, const Tensor<U>& right, Func op);
+            template <typename U, typename Func> friend Tensor<U> apply_out_of_place(const Tensor& left, const Tensor& right, Func op);
 
+            template <typename U> friend Tensor<U> operator+(Tensor<U> left, Tensor<U> right); // we befriend whole family of functions named operator+. 
+            template <typename U> friend Tensor<U> operator*(Tensor<U> left, Tensor<U> right); // It operates on type U and U can be virtually anything
+
+            template <typename U> friend Tensor<U>& operator+=(Tensor<U>& main, Tensor<U> other);
+            template <typename U> friend Tensor<U>& operator*=(Tensor<U>& main, Tensor<U> other);
+            
             //Tensor& operator+=(const Tensor& other);
             //Tensor operator+(const Tensor& other) const;
 
