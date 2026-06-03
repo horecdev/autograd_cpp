@@ -137,7 +137,6 @@ namespace gradc {
             Tensor permute(const std::vector<int64_t>& axes) const;
             Tensor reshape(const std::vector<int64_t>& target_shape) const;
             Tensor broadcast_to(const std::vector<size_t>& target_shape) const;
-            std::vector<size_t> infer_broadcast(const std::vector<size_t>& a, const std::vector<size_t>& b) const;
 
             // MATH
             template <typename U, typename Func> void apply_in_place(Tensor<U>& left, const Tensor<U>& right, Func op);
@@ -149,17 +148,6 @@ namespace gradc {
             template <typename U> friend Tensor<U>& operator+=(Tensor<U>& main, Tensor<U> other);
             template <typename U> friend Tensor<U>& operator*=(Tensor<U>& main, Tensor<U> other);
             
-            //Tensor& operator+=(const Tensor& other);
-            //Tensor operator+(const Tensor& other) const;
-
-            // Tensor& operator-=(const Tensor& other);
-            // Tensor operator-(const Tensor& other) const;
-
-            //Tensor& operator*=(const Tensor& other);
-            //Tensor operator*(const Tensor& other) const;
-
-            // Tensor& operator/=(const Tensor& other);
-            // Tensor operator/(const Tensor& other) const;
     };
 } 
 
