@@ -55,7 +55,7 @@ namespace gradc {
         new_strides[dim0] = new_strides[dim1];
         new_strides[dim1] = temp;
 
-        return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_storage);
+        return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_storage, std::make_shared<TransposeNode<T>>(*this), m_requires_grad);
     }
 
     template <typename T>

@@ -82,7 +82,7 @@ namespace gradc {
             Tensor<T> realize() override {
                 m_parent.realize();
 
-                Tensor<T> result = m_parent; // same metadata as parent (could be just Tensor() presumably)
+                Tensor<T> result = m_parent; // same metadata as parent (could be just Tensor() presumably bc it gets ripped out by tensor)
                 result.m_storage = std::make_shared<Storage<T>>(*m_parent.m_storage); // totally new data vector
 
                 return result;
@@ -90,7 +90,30 @@ namespace gradc {
     };
 
     template <typename T>
-    class ReshapeNode : public Node<T> {
+    class TransposeNode: public Node<T> {
+        private: 
+            Tensor<T> m_parent;
+        public:
+            TransposeNode(Tensor<T> parent) : m_parent(std::move(parent)) {}
 
+            Tensor<T> realize() override {
+                m_parent.eval();
+                Tensor<T> parent_copy = m_parent;
+                return parent_copy; // return a COPY to be skinned alive (just duplicate data pointer since its not edited - just the strides are)
+            }
+    };
+
+    template <typename T>
+    class ReshapeNode : public Node<T> {
+        private:
+            Tensor<T> m_parent;
+        public:
+            ReshapeNode(Tensor<T> parent) : m_parent(std::move(parent)) {}
+
+            Tensor<T> realize() override {
+                m_parent.realize();
+
+
+            }
     };
 }
