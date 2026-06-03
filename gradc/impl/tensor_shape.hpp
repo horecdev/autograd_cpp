@@ -130,37 +130,4 @@ namespace gradc {
 
         return reshaped_tensor;
     }
-
-    template <typename T>
-    Tensor<T> Tensor<T>::broadcast_to(const std::vector<size_t>& target_shape) const {
-        int64_t n_dim_orig = static_cast<int64_t>(m_shape.size());
-        int64_t n_dim_target = static_cast<int64_t>(target_shape.size());
-        std::vector<size_t> new_shape = std::vector<size_t>(n_dim_target);
-        std::vector<size_t> new_strides = std::vector<size_t>(n_dim_target);
-
-        // align to the right
-        for (int64_t i = 0; i < n_dim_orig; ++i) {
-            new_shape[i + (n_dim_target - n_dim_orig)] = m_shape[i];
-            new_strides[i + (n_dim_target - n_dim_orig)] = m_strides[i];
-        }
-        for (int64_t i = n_dim_target - n_dim_orig - 1; i >= 0; --i) { // fill leftovers (dont even have to check later)
-            new_shape[i] = target_shape[i];
-            new_strides[i] = 0;
-        }
-
-        for (int64_t i = (n_dim_target - n_dim_orig); i < n_dim_target; ++i) {
-            if (target_shape[i] == new_shape[i]) {
-                // literally leave everything as is
-            }
-            else if (new_shape[i] == 1) {
-                new_shape[i] = target_shape[i];
-                new_strides[i] = 0;
-            }
-            else {
-                throw std::runtime_error("Violated broadcasting rules in .broadcast_to().");
-            }
-        }
-
-        return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_storage);
-    }
 }

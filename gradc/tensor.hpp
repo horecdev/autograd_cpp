@@ -146,7 +146,6 @@ namespace gradc {
             Tensor transpose(const size_t dim0, const size_t dim1) const;
             Tensor permute(const std::vector<int64_t>& axes) const;
             Tensor reshape(const std::vector<int64_t>& target_shape) const;
-            Tensor broadcast_to(const std::vector<size_t>& target_shape) const;
 
             // MATH
             template <typename U, typename Func> void apply_in_place(Tensor<U>& left, const Tensor<U>& right, Func op);

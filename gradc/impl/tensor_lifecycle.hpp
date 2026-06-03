@@ -85,9 +85,8 @@ namespace gradc {
     }
 
     template <typename T>
-    Tensor<T> Tensor<T>::clone() const { // TODO: ADD CLONE NODE!!!
-        // Triggers Storage copy constructor - new heap memo allocated
-        // auto ptr = std::make_shared<Storage<T>>(*m_storage); // shared_ptr pointing to a new vector with copied data. (ref_count = 1)
-        // return Tensor(m_shape, m_strides, m_offset, std::move(ptr), );
+    Tensor<T> Tensor<T>::clone() const { 
+        Tensor parent_snapshot = *this; // shallow copy
+        return Tensor(m_shape, m_strides, m_offset, Storage<T>(), std::make_shared<CloneNode<T>>(std::move(parent_snapshot)), m_requires_grad);
     }
 }

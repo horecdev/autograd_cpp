@@ -1,7 +1,7 @@
 #pragma once
 #include <stdexcept>
 #include <vector>
-
+#include "../tensor.hpp"
 namespace gradc {
     inline std::vector<size_t> infer_broadcast(const std::vector<size_t>& a, const std::vector<size_t>& b) {
         size_t size_a = a.size();
@@ -66,4 +66,38 @@ namespace gradc {
         }   
         return true;
     }
+
+    template <typename T>
+    Tensor<T> lobotomized_broadcast(const  Tensor<T>& source, const std::vector<size_t>& target_shape) {
+        int64_t n_dim_orig = static_cast<int64_t>(source.m_shape.size());
+        int64_t n_dim_target = static_cast<int64_t>(target_shape.size());
+        std::vector<size_t> new_shape = std::vector<size_t>(n_dim_target);
+        std::vector<size_t> new_strides = std::vector<size_t>(n_dim_target);
+
+        // align to the right
+        for (int64_t i = 0; i < n_dim_orig; ++i) {
+            new_shape[i + (n_dim_target - n_dim_orig)] = source.m_shape[i];
+            new_strides[i + (n_dim_target - n_dim_orig)] = source.m_strides[i];
+        }
+        for (int64_t i = n_dim_target - n_dim_orig - 1; i >= 0; --i) { // fill leftovers (dont even have to check later)
+            new_shape[i] = target_shape[i];
+            new_strides[i] = 0;
+        }
+
+        for (int64_t i = (n_dim_target - n_dim_orig); i < n_dim_target; ++i) {
+            if (target_shape[i] == new_shape[i]) {
+                // literally leave everything as is
+            }
+            else if (new_shape[i] == 1) {
+                new_shape[i] = target_shape[i];
+                new_strides[i] = 0;
+            }
+            else {
+                throw std::runtime_error("Violated broadcasting rules in lobotomized_broadcast().");
+            }
+        }
+
+        return Tensor(std::move(new_shape), std::move(new_strides), source.m_offset, source.m_storage, nullptr, false); // lobotomy (no past or future)
+    }
+
 }

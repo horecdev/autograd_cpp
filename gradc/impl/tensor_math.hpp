@@ -21,7 +21,7 @@ namespace gradc {
             right_storage = right.m_storage; // shared ptr
         }
         else {
-            broad_right = right.broadcast_to(left.m_shape);
+            broad_right = lobotomized_broadcast(right, left.m_shape);
 
             right_strides = &broad_right.m_strides;
             right_offset = broad_right.m_offset;
@@ -63,14 +63,14 @@ namespace gradc {
         Tensor<T> broad_left;
 
         if (left.m_shape != target_shape) {
-            broad_left = left.broadcast_to(target_shape);
+            broad_left = lobotomized_broadcast(left, target_shape);
 
             left_strides = &broad_left.m_strides;
             left_offset = broad_left.m_offset;
             left_storage = broad_left.m_storage;
         }
         if (right.m_shape != target_shape) {
-            broad_right = right.broadcast_to(target_shape);
+            broad_right = lobotomized_broadcast(right, target_shape);
 
             right_strides = &broad_right.m_strides;
             right_offset = broad_right.m_offset;
