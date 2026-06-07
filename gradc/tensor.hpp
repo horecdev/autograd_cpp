@@ -92,7 +92,9 @@ namespace gradc {
             Tensor& realize() {
                 if (m_storage->m_data.empty() && m_op != nullptr) { // do I need to do math AND I know how to do math?
                     Tensor computed_result = m_op->realize();
-                    m_storage->m_data = std::move(computed_result.m_storage->m_data);
+                    if (m_storage != computed_result.m_storage) { // move only if node connected two tensors with different storages (not in-place, so not InPlaceAddNode, TransposeNode etc.)
+                        m_storage->m_data = std::move(computed_result.m_storage->m_data);
+                    }
                 }
 
                 return *this;

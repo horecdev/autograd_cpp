@@ -4,6 +4,7 @@
 namespace gradc {
     template <typename T>
     bool Tensor<T>::is_contiguous() const {
+        if (m_shape.empty()) return true;
         if (m_strides[m_strides.size() - 1] != 1) {
             return false;
         }
@@ -119,15 +120,16 @@ namespace gradc {
         for (size_t i = target_shape.size() - 1; i > 0; --i) {
             new_strides[i - 1] = new_shape[i] * new_strides[i];
         }
-        
-        if (this->is_contiguous()) { // cannot reshape a non-contiguous tensor.
-            return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_storage, m_op);
+
+        if (this->is_contiguous()) {
+            return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_storage, std::make_shared<ReshapeNode<T>>(*this), m_requires_grad);
         }
-
-        Tensor reshaped_tensor = this->contiguous(); // contiguous is shape-sensitive (if sliced then only slice is made contiguous)
-        reshaped_tensor.m_shape = std::move(new_shape);
-        reshaped_tensor.m_strides = std::move(new_strides);
-
-        return reshaped_tensor;
+        else {
+            Tensor<T> config_tensor = this->contiguous();
+            config_tensor.m_shape = std::move(new_shape);
+            config_tensor.m_strides = std::move(m_strides);
+            config_tensor.m_op = std::make_shared<ReshapeNode<T>>(*this);
+            config_tensor.m_requires_grad = m_requires_grad;
+        }
     }
 }

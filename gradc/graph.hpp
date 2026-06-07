@@ -67,7 +67,7 @@ namespace gradc {
             Tensor<T> realize() override {
                 m_left.realize();
                 m_right.realize();
-                apply_in_place(m_left, m_right, [](T &a, T b){a *= b;}); // version is bumped up, modifies m_left
+                apply_in_place(m_left, m_right, [](T &a, T b){a *= b;}); 
                 return m_left;
             }
     };
@@ -90,6 +90,18 @@ namespace gradc {
     };
 
     template <typename T>
+    class ContiguousNode: public Node<T> {
+        private: 
+            Tensor<T> m_parent;
+        public:
+            ContiguousNode(Tensor<T> parent) : m_parent(std::move(parent)) {}
+
+            Tensor<T> realize() override {
+                return;
+            }
+    }; 
+
+    template <typename T>
     class TransposeNode: public Node<T> {
         private: 
             Tensor<T> m_parent;
@@ -98,8 +110,7 @@ namespace gradc {
 
             Tensor<T> realize() override {
                 m_parent.eval();
-                Tensor<T> parent_copy = m_parent;
-                return parent_copy; // return a COPY to be skinned alive (just duplicate data pointer since its not edited - just the strides are)
+                return m_parent; // storages are the same, avoid copying redundant data that will be skimmed over either way.
             }
     };
 
@@ -112,8 +123,8 @@ namespace gradc {
 
             Tensor<T> realize() override {
                 m_parent.realize();
-
-
+                Tensor<T> parent_copy = m_parent;
+                return parent_copy;
             }
     };
 }
