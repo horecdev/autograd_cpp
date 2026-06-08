@@ -10,21 +10,21 @@
 
 namespace gradc {
     template <typename T>
-    Tensor<T>::Tensor() : m_shape({}), m_strides({}), m_offset(0), m_storage(nullptr), m_op(nullptr), m_requires_grad(false) {} // default constructor
+    Tensor<T>::Tensor() : m_shape({}), m_strides({}), m_offset(0), m_state(nullptr), m_requires_grad(false) {} // default constructor
     
     template <typename T>
     Tensor<T>::Tensor(std::vector<size_t> shape) 
         // can pass integer as m_strides, because it implicitly constructs a std::vector by just variable(arguments)
-        : m_shape(std::move(shape)), m_strides(m_shape.size()), m_offset(0), m_op(nullptr), m_requires_grad(false) {
+        : m_shape(std::move(shape)), m_strides(m_shape.size()), m_offset(0), m_requires_grad(false) {
             if (m_shape.size() == 0) { // a scalar (0-dimensional)
-                m_storage = std::make_shared<Storage<T>>(std::vector<T>(1));
+                m_state = std::make_shared<TensorState>(std::vector<T>(1));
             }
             else {
                 m_strides[m_shape.size() - 1] = 1; 
                 for (size_t i = m_shape.size() - 1; i > 0; --i) {
                     m_strides[i - 1] = m_shape[i] * m_strides[i];
                 }
-                m_storage = std::make_shared<Storage<T>>(std::vector<T>(m_shape[0] * m_strides[0]));
+                m_state = std::make_shared<TensorState>(std::vector<T>(m_shape[0] * m_strides[0]));
             }
         }
 
@@ -50,7 +50,7 @@ namespace gradc {
     
     template <typename T>
     Tensor<T>::~Tensor() {
-        std::cout << "Tensor Destroyed" << std::endl;
+        // std::cout << "Tensor Destroyed" << std::endl;
     }
 
     template <typename T>

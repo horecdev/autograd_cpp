@@ -39,10 +39,7 @@ namespace gradc {
         std::vector<T> m_data;
         size_t m_version;
 
-        Storage() {
-            m_data = std::vector<T>{};
-            m_version = 0;
-        }
+        Storage() : m_data(std::vector<T>{}), m_version(0) {}
 
         Storage(std::vector<T>&& data) : m_data(std::move(data)), m_version(0) {}
         // If there is a new buffer - zero out the version.
@@ -66,8 +63,36 @@ namespace gradc {
         } 
 
         ~Storage() {
-            std::cout << "Storage Destroyed" << std::endl;
+            //std::cout << "Storage Destroyed" << std::endl;
         }
+    };
+
+    template <typename T>
+    struct TensorState {
+        std::shared_ptr<Storage<T>> m_storage; // nodes can share just storage
+        std::shared_ptr<Node<T>> m_realize_op; // nodes can share operation (if aliases of same variable)
+
+        TensorState() : m_storage(std::make_shared<Storage<T>>()), m_realize_op(nullptr) {}
+
+        TensorState(const TensorState& other) : m_storage(other.m_storage), m_realize_op(other.m_realize_op) {}
+        TensorState(TensorState&& other) : m_storage(std::move(other.m_storage)), m_realize_op(std::move(m_realize_op)) {}
+
+        TensorState& operator=(const TensorState& other) {
+            if (this != &other) {
+                m_storage = other.m_storage;
+                m_realize_op = other.m_realize_op;
+            }
+            return *this;
+        }
+        TensorState& operator=(TensorState&& other) {
+            if (this != &other) {
+                m_storage = std::move(other.m_storage);
+                m_realize_op = std::move(other.m_realize_op);
+            }
+            return *this;
+        } 
+
+        TensorState(std::vector<T>&& data) : m_storage(std::make_shared<Storage<T>>(std::move(data))), m_realize_op(nullptr) {}
     };
 
     template <typename T>
@@ -76,25 +101,26 @@ namespace gradc {
             std::vector<size_t> m_shape;
             std::vector<size_t> m_strides;
             size_t m_offset;
-            std::shared_ptr<Storage<T>> m_storage;
-            std::shared_ptr<Node<T>> m_op; // if its a not a shared_ptr you get (2^N) exponential growth of tree with each op (to copy a tensor you copy a node and to copy node you copy a tensor...)
+            std::shared_ptr<TensorState<T>> m_state;
             bool m_requires_grad;
 
         public:
             void realize() {
-                if (m_storage->m_data.empty() && m_op != nullptr) { // do I need to do math AND I know how to do math?
-                    Tensor computed_result = m_op->realize();
-                    if (m_storage != computed_result.m_storage) { // move only if node connected two tensors with different storages (not in-place, so not InPlaceAddNode, TransposeNode etc.)
-                        m_storage->m_data = std::move(computed_result.m_storage->m_data);
+                if (m_state->m_realize_op != nullptr) { // is there an m_op? if so, execute it
+                    Tensor computed_result = m_state->m_realize_op->realize();
+                    if (m_state->m_storage != computed_result.m_state->m_storage) {
+                        m_state->m_storage->m_data = std::move(computed_result.m_state->m_storage->m_data);
                     }
                 }
+
+                m_state->m_op = nullptr; // so we dont realize() twice (reflected across multiple aliases)
             }
 
             // LIFECYCLE 
             Tensor();
             Tensor(std::vector<size_t> shape);
             Tensor(std::vector<size_t> shape, bool requires_grad, LazyTag);
-            Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<Storage<T>> data, std::shared_ptr<Node<T>> op, bool requires_grad);
+            Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<TensorState<T>> data, bool requires_grad);
             ~Tensor();
             Tensor(const Tensor& source);
             Tensor(Tensor&& source);
@@ -128,7 +154,7 @@ namespace gradc {
 
             // SETTERS
             void set_data(std::vector<T> data) {
-                this->m_storage->m_data = data; // copy vector
+                this->m_state->m_storage->m_data = data; // copy vector
             }
             void set_requires_grad(bool value) {
                 m_requires_grad = value;

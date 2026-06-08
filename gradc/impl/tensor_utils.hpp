@@ -252,8 +252,7 @@ namespace gradc {
     }
 
     struct PrintOptions {
-        size_t edge_items = 3;
-        size_t threshold = 7;
+        size_t edge_items = 5;
         int dim_indentation = 2;
         bool show_metadata = true;
     };
@@ -297,7 +296,7 @@ namespace gradc {
 
         else {
             stream << std::string(current_dim * opts.dim_indentation, ' ') << "[" << std::endl;
-            if (source.m_shape[current_dim] > opts.threshold) {
+            if (source.m_shape[current_dim] > 2 * opts.edge_items) {
                 // print edge_items first, edge_items last
                 for (size_t i = 0; i < opts.edge_items; ++i) {
                     print_dim(stream, source, opts, current_dim + 1, base_offset + i * source.m_strides[current_dim], false);
