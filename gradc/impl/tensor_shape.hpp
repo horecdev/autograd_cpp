@@ -18,43 +18,18 @@ namespace gradc {
     
     template <typename T>
     Tensor<T> Tensor<T>::contiguous() const {
-        if (m_shape.empty()) {
-            Tensor scalar_tensor = Tensor(std::vector<size_t>{});
-            ((*scalar_tensor.m_storage).m_data)[0] = ((*m_storage).m_data)[m_offset];
-            return scalar_tensor;
-        }
-        Tensor new_contiguous = Tensor(m_shape); // already right size and right contiguous strides
-        size_t n_dims = m_shape.size();
-        std::vector<size_t> odometer(n_dims, 0); // zeroed out
-        size_t contiguous_idx = 0;
-        while (odometer[0] < m_shape[0]) {
-            size_t strided_idx = m_offset;
-            for (size_t i = 0; i < n_dims; ++i) {
-                strided_idx += odometer[i] * m_strides[i];
-            }
-            ((*new_contiguous.m_storage).m_data)[contiguous_idx] = ((*m_storage).m_data)[strided_idx];
-            ++contiguous_idx;
-            ++odometer[n_dims - 1];
-            size_t i = n_dims - 1;
-            while ((odometer[i] == m_shape[i]) && i > 0) {
-                odometer[i] = 0;
-                ++odometer[i - 1];
-                --i;
-            }
-        }
-        return new_contiguous;
+        Tensor result = Tensor(m_shape, m_requires_grad, lazy);
+        result.m_op = std::make_shared<ContiguousNode<T>>(*this);
+
+        return result;
     }
 
     template <typename T>
     Tensor<T> Tensor<T>::transpose(const size_t dim0, const size_t dim1) const {
         std::vector<size_t> new_shape = m_shape;
         std::vector<size_t> new_strides = m_strides;
-        size_t temp = new_shape[dim0];
-        new_shape[dim0] = new_shape[dim1];
-        new_shape[dim1] = temp;
-        temp = new_strides[dim0];
-        new_strides[dim0] = new_strides[dim1];
-        new_strides[dim1] = temp;
+        std::swap(new_shape[dim0], new_shape[dim1]);
+        std::swap(new_strides[dim0], new_strides[dim1]);
 
         return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_storage, std::make_shared<TransposeNode<T>>(*this), m_requires_grad);
     }
@@ -62,7 +37,6 @@ namespace gradc {
     template <typename T>
     Tensor<T> Tensor<T>::permute(const std::vector<int64_t>& axes) const {
         size_t n_dim = m_shape.size();
-        std::cout << axes.size() << " " << n_dim << std::endl;
         if (axes.size() != n_dim) {
             throw std::runtime_error("permute() axes list size must match shape list size.");
         }
@@ -76,7 +50,8 @@ namespace gradc {
             new_shape[target_ax] = m_shape[src_ax];
             new_strides[target_ax] = m_strides[src_ax];
         }
-        return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_storage);
+
+        return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_storage, std::make_shared<PermuteNode<T>>(*this), m_requires_grad);
     }
 
     template <typename T>
@@ -125,11 +100,9 @@ namespace gradc {
             return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_storage, std::make_shared<ReshapeNode<T>>(*this), m_requires_grad);
         }
         else {
-            Tensor<T> config_tensor = this->contiguous();
-            config_tensor.m_shape = std::move(new_shape);
-            config_tensor.m_strides = std::move(m_strides);
-            config_tensor.m_op = std::make_shared<ReshapeNode<T>>(*this);
-            config_tensor.m_requires_grad = m_requires_grad;
+            Tensor contiguous_tensor = this->contiguous(); // has right metadata 
+            return Tensor(std::move(new_shape), std::move(new_strides), contiguous_tensor.m_offset, contiguous_tensor.m_storage, std::make_shared<ReshapeNode<T>>(contiguous_tensor), contiguous_tensor.m_requires_grad);
+
         }
     }
 }

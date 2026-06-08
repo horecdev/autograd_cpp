@@ -2,6 +2,7 @@
 #include "tensor.hpp" // IWYU pragma: keep
 #include "node.hpp"
 #include "impl/tensor_math.hpp"
+#include "impl/tensor_utils.hpp"
 
 namespace gradc {
     template <typename T>
@@ -97,7 +98,8 @@ namespace gradc {
             ContiguousNode(Tensor<T> parent) : m_parent(std::move(parent)) {}
 
             Tensor<T> realize() override {
-                return;
+                m_parent.realize();
+                return lobotomized_contiguous(m_parent); // jsut the storage will be taken over
             }
     }; 
 
@@ -123,8 +125,20 @@ namespace gradc {
 
             Tensor<T> realize() override {
                 m_parent.realize();
-                Tensor<T> parent_copy = m_parent;
-                return parent_copy;
+                return m_parent; // same as comment above
+            }
+    };
+
+    template <typename T>
+    class PermuteNode: public Node<T> {
+        private:
+            Tensor<T> m_parent;
+        public:
+            PermuteNode(Tensor<T> parent) : m_parent(std::move(parent)) {}
+
+            Tensor<T> realize() override {
+                m_parent.realize();
+                return m_parent; // same as comment above
             }
     };
 }

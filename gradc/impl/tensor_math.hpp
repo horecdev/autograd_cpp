@@ -109,7 +109,7 @@ namespace gradc {
     template <typename T>
     Tensor<T> operator+(Tensor<T> left, Tensor<T> right) {
         std::vector<size_t> target_shape;
-        if (left.m_shape != right.m_shape) { // TODO: ADD FRIEND TO THESE FUNCTIONS SO THEY CAN ACCES PRIVATE VARIABLES
+        if (left.m_shape != right.m_shape) {
             target_shape = infer_broadcast(left.m_shape, right.m_shape); // crashes if incompatible on the graph-building stage.
         }
         else {

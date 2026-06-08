@@ -68,7 +68,7 @@ namespace gradc {
     }
 
     template <typename T>
-    Tensor<T> lobotomized_broadcast(const  Tensor<T>& source, const std::vector<size_t>& target_shape) {
+    Tensor<T> lobotomized_broadcast(const Tensor<T>& source, const std::vector<size_t>& target_shape) {
         int64_t n_dim_orig = static_cast<int64_t>(source.m_shape.size());
         int64_t n_dim_target = static_cast<int64_t>(target_shape.size());
         std::vector<size_t> new_shape = std::vector<size_t>(n_dim_target);
@@ -100,4 +100,32 @@ namespace gradc {
         return Tensor(std::move(new_shape), std::move(new_strides), source.m_offset, source.m_storage, nullptr, false); // lobotomy (no past or future)
     }
 
+    template <typename T>
+    Tensor<T> lobotomized_contiguous(const Tensor<T>& source) {
+        if (source.m_shape.empty()) {
+            Tensor<T> scalar_tensor = Tensor<T>(std::vector<size_t>{});
+            ((*scalar_tensor.m_storage).m_data)[0] = ((*source.m_storage).m_data)[source.m_offset];
+            return scalar_tensor;
+        }
+        Tensor<T> new_contiguous = Tensor<T>(source.m_shape); // right shape and strides, but Tensor will rip out only data
+        size_t n_dims = source.m_shape.size();
+        std::vector<size_t> odometer(n_dims, 0); // zeroed out
+        size_t contiguous_idx = 0;
+        while (odometer[0] < source.m_shape[0]) {
+            size_t strided_idx = source.m_offset;
+            for (size_t i = 0; i < n_dims; ++i) {
+                strided_idx += odometer[i] * source.m_strides[i];
+            }
+            ((*new_contiguous.m_storage).m_data)[contiguous_idx] = ((*source.m_storage).m_data)[strided_idx];
+            ++contiguous_idx;
+            ++odometer[n_dims - 1];
+            size_t i = n_dims - 1;
+            while ((odometer[i] == source.m_shape[i]) && i > 0) {
+                odometer[i] = 0;
+                ++odometer[i - 1];
+                --i;
+            }
+        }
+        return new_contiguous;
+    }
 }
