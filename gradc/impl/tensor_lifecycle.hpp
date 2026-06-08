@@ -1,5 +1,13 @@
 #pragma once
+
 #include "../tensor.hpp"
+#include "../graph.hpp"
+
+#include <iostream>
+#include <memory>
+#include <utility>
+#include <vector>
+
 namespace gradc {
     template <typename T>
     Tensor<T>::Tensor() : m_shape({}), m_strides({}), m_offset(0), m_storage(nullptr), m_op(nullptr), m_requires_grad(false) {} // default constructor

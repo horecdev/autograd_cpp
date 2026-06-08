@@ -1,5 +1,15 @@
 #pragma once 
+
 #include "../tensor.hpp"
+#include "../graph.hpp"
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <stdexcept>
+#include <utility>
+#include <vector>
 
 namespace gradc {
     template <typename T>
@@ -34,7 +44,8 @@ namespace gradc {
                 new_offset += static_cast<size_t>(coord) * m_strides[i];
             }
         }
-        return Tensor(std::move(new_shape), std::move(new_strides), new_offset, m_storage); // backdoor construct shallow copy
+
+        return Tensor(std::move(new_shape), std::move(new_strides), new_offset, m_storage, std::make_shared<SliceNode<T>>(*this), m_requires_grad);
     }
 
     template <typename T>

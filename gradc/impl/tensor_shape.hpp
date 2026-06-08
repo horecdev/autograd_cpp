@@ -1,5 +1,14 @@
 #pragma once
+
 #include "../tensor.hpp"
+#include "../graph.hpp"
+
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <stdexcept>
+#include <utility>
+#include <vector>
 
 namespace gradc {
     template <typename T>

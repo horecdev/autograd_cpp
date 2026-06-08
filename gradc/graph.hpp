@@ -1,8 +1,12 @@
 #pragma once
-#include "tensor.hpp" // IWYU pragma: keep
+
 #include "node.hpp"
-#include "impl/tensor_math.hpp"
+#include "tensor.hpp"
 #include "impl/tensor_utils.hpp"
+
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace gradc {
     template <typename T>
@@ -139,6 +143,19 @@ namespace gradc {
             Tensor<T> realize() override {
                 m_parent.realize();
                 return m_parent; // same as comment above
+            }
+    };
+
+    template <typename T>
+    class SliceNode: public Node<T> {
+        private: 
+            Tensor<T> m_parent;
+        public:
+            SliceNode(Tensor<T> parent) : m_parent(std::move(parent)) {}
+
+            Tensor<T> realize() override {
+                m_parent.realize();
+                return m_parent;
             }
     };
 }

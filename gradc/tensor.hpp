@@ -1,10 +1,16 @@
 #pragma once
+#include "node.hpp"
+#include "graph_fwd.hpp"
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <memory>
 #include <ostream>
-#include <stdexcept> // IWYU pragma: keep
+#include <stdexcept>
+#include <utility>
 #include <vector>
-#include <array> // IWYU pragma: keep
 
 template <typename T>
 std::ostream& operator<<(std::ostream& stream, const std::vector<T>& vector) {
@@ -136,8 +142,10 @@ namespace gradc {
                 return m_requires_grad;
             }
 
-            // GETTERS
-
+            // SETTERS
+            void set_data(std::vector<T> data) {
+                this->m_storage->m_data = data; // copy vector
+            }
             void set_requires_grad(bool value) {
                 m_requires_grad = value;
             }
@@ -150,21 +158,22 @@ namespace gradc {
             Tensor reshape(const std::vector<int64_t>& target_shape) const;
 
             // MATH
-            template <typename U, typename Func> void apply_in_place(Tensor<U>& left, const Tensor<U>& right, Func op);
-            template <typename U, typename Func> friend Tensor<U> apply_out_of_place(const Tensor& left, const Tensor& right, Func op);
+            template <typename U, typename Func> friend void apply_in_place(Tensor<U>& left, const Tensor<U>& right, Func op);
+            template <typename U, typename Func> friend Tensor<U> apply_out_of_place(const Tensor<U>& left, const Tensor<U>& right, const std::vector<size_t>& target_shape, Func op);
+            template <typename U> friend Tensor<U> lobotomized_broadcast(const Tensor<U> &source, const std::vector<size_t> &target_shape);
+            template <typename U> friend Tensor<U> lobotomized_contiguous(const Tensor<U> &source);
 
             template <typename U> friend Tensor<U> operator+(Tensor<U> left, Tensor<U> right); // we befriend whole family of functions named operator+. 
             template <typename U> friend Tensor<U> operator*(Tensor<U> left, Tensor<U> right); // It operates on type U and U can be virtually anything
 
             template <typename U> friend Tensor<U>& operator+=(Tensor<U>& main, Tensor<U> other);
             template <typename U> friend Tensor<U>& operator*=(Tensor<U>& main, Tensor<U> other);
+
+            template <typename U> friend class CloneNode;
+
+            //template <typename U> friend 
             
     };
 } 
-
-#include "impl/tensor_lifecycle.hpp" // IWYU pragma: keep
-#include "impl/tensor_indexing.hpp" // IWYU pragma: keep
-#include "impl/tensor_shape.hpp" // IWYU pragma: keep
-#include "impl/tensor_math.hpp" // IWYU pragma: keep
 
    
