@@ -234,4 +234,46 @@ namespace gradc {
 
         return result;
     }
+
+    template <typename T>
+    std::ostream& operator<<(std::ostream& stream, const std::vector<T>& vector) {
+        for (size_t i = 0; i < vector.size(); ++i) {
+            if (i == vector.size() - 1) {
+                stream << vector[i];
+            }
+            else {
+                stream << vector[i] << " ";
+            }
+            
+        }
+        return stream;
+    }
+
+    template <typename T> // TODO: IMPLEMENT PRINTING
+    std::ostream& operator<<(std::ostream& stream, const Tensor<T>& source) {
+        if (source.m_storage->m_data.empty() && source.m_op != nullptr) {
+            stream << "Not Realized Tensor | Shape: " << source.m_shape << std::endl << " Strides: " << source.m_strides;
+            return stream;
+        }
+
+        size_t n_dims = source.m_shape.size();
+        std::vector<size_t> odometer(n_dims, 0);
+        size_t contiguous_idx = 0;
+        while (odometer[0] < source.m_shape[0]) {
+            size_t strided_idx = source.m_offset; 
+
+            for (size_t i = 0; i < n_dims; ++i) {
+                strided_idx += odometer[i] * source.m_strides[i];
+            }
+            T value = (source.m_storage->m_data)[strided_idx];
+            ++odometer[n_dims - 1];
+            size_t i = n_dims - 1;
+            while ((odometer[i] == source.m_shape[i]) && i > 0) {
+                odometer[i] = 0;
+                ++odometer[i - 1];
+                --i;
+            }
+        }
+
+    }
 }

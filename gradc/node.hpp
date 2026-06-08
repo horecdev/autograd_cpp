@@ -9,7 +9,6 @@ namespace gradc {
     class Node {
         public:
             virtual Tensor<T> realize() = 0;
-            virtual void backward() = 0;
 
             virtual ~Node() {}
     };

@@ -12,20 +12,6 @@
 #include <utility>
 #include <vector>
 
-template <typename T>
-std::ostream& operator<<(std::ostream& stream, const std::vector<T>& vector) {
-    for (size_t i = 0; i < vector.size(); ++i) {
-        if (i == vector.size() - 1) {
-            stream << vector[i];
-        }
-        else {
-            stream << vector[i] << " ";
-        }
-        
-    }
-    return stream;
-}
-
 namespace gradc {
 
     struct Placeholder{};
@@ -95,15 +81,13 @@ namespace gradc {
             bool m_requires_grad;
 
         public:
-            Tensor& realize() {
+            void realize() {
                 if (m_storage->m_data.empty() && m_op != nullptr) { // do I need to do math AND I know how to do math?
                     Tensor computed_result = m_op->realize();
                     if (m_storage != computed_result.m_storage) { // move only if node connected two tensors with different storages (not in-place, so not InPlaceAddNode, TransposeNode etc.)
                         m_storage->m_data = std::move(computed_result.m_storage->m_data);
                     }
                 }
-
-                return *this;
             }
 
             // LIFECYCLE 
@@ -160,8 +144,6 @@ namespace gradc {
             // MATH
             template <typename U, typename Func> friend void apply_in_place(Tensor<U>& left, const Tensor<U>& right, Func op);
             template <typename U, typename Func> friend Tensor<U> apply_out_of_place(const Tensor<U>& left, const Tensor<U>& right, const std::vector<size_t>& target_shape, Func op);
-            template <typename U> friend Tensor<U> lobotomized_broadcast(const Tensor<U> &source, const std::vector<size_t> &target_shape);
-            template <typename U> friend Tensor<U> lobotomized_contiguous(const Tensor<U> &source);
 
             template <typename U> friend Tensor<U> operator+(Tensor<U> left, Tensor<U> right); // we befriend whole family of functions named operator+. 
             template <typename U> friend Tensor<U> operator*(Tensor<U> left, Tensor<U> right); // It operates on type U and U can be virtually anything
@@ -169,9 +151,13 @@ namespace gradc {
             template <typename U> friend Tensor<U>& operator+=(Tensor<U>& main, Tensor<U> other);
             template <typename U> friend Tensor<U>& operator*=(Tensor<U>& main, Tensor<U> other);
 
-            template <typename U> friend class CloneNode;
+            // UTILS
+            template <typename U> friend Tensor<U> lobotomized_broadcast(const Tensor<U>& source, const std::vector<size_t>& target_shape);
+            template <typename U> friend Tensor<U> lobotomized_contiguous(const Tensor<U>& source);
 
-            //template <typename U> friend 
+            template<typename U> friend std::ostream& operator<<(const std::ostream& stream, const Tensor<U>& source);
+
+            
             
     };
 } 

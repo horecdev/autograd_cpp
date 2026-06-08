@@ -23,8 +23,6 @@ namespace gradc {
                 m_right.realize();
                 return apply_out_of_place(m_left, m_right, m_target_shape, [](T a, T b) {return a + b;});
             }
-
-            void backward() override {}
     };
 
     template <typename T>
@@ -41,8 +39,6 @@ namespace gradc {
                 m_right.realize();
                 return apply_out_of_place(m_left, m_right, m_target_shape, [](T a, T b) {return a * b;});
             }
-
-            void backward() override {}
     };
 
     template <typename T>
@@ -56,7 +52,7 @@ namespace gradc {
             Tensor<T> realize() override {
                 m_left.realize();
                 m_right.realize();
-                apply_in_place(m_left, m_right, [](T &a, T b){a += b;}); // version is bumped up, modifies m_left
+                apply_in_place(m_left, m_right, [](T& a, T b){a += b;}); // version is bumped up, modifies m_left
                 return m_left;
             }
     };
@@ -72,7 +68,7 @@ namespace gradc {
             Tensor<T> realize() override {
                 m_left.realize();
                 m_right.realize();
-                apply_in_place(m_left, m_right, [](T &a, T b){a *= b;}); 
+                apply_in_place(m_left, m_right, [](T& a, T b){a *= b;}); 
                 return m_left;
             }
     };
@@ -115,7 +111,7 @@ namespace gradc {
             TransposeNode(Tensor<T> parent) : m_parent(std::move(parent)) {}
 
             Tensor<T> realize() override {
-                m_parent.eval();
+                m_parent.realize();
                 return m_parent; // storages are the same, avoid copying redundant data that will be skimmed over either way.
             }
     };
@@ -125,7 +121,7 @@ namespace gradc {
         private:
             Tensor<T> m_parent;
         public:
-            ReshapeNode(Tensor<T> parent) : m_parent(std::move(parent)) {}
+            ReshapeNode(Tensor<T> parent) : m_parent(std::move(parent)) {std::cout << ("MOVE GOT SMOKED") << std::endl;}
 
             Tensor<T> realize() override {
                 m_parent.realize();
