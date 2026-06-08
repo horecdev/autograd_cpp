@@ -93,7 +93,8 @@ namespace gradc {
 
     template <typename T>
     Tensor<T> Tensor<T>::clone() const { 
-        Tensor parent_snapshot = *this; // shallow copy
-        return Tensor(m_shape, m_strides, m_offset, Storage<T>(), std::make_shared<CloneNode<T>>(std::move(parent_snapshot)), m_requires_grad);
+        Tensor<T> tensor_copy = Tensor(m_shape, m_requires_grad, lazy);
+        tensor_copy.m_op = std::make_shared<CloneNode<T>>(*this);
+        return tensor_copy;
     }
 }

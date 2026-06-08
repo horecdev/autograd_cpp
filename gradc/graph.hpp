@@ -83,10 +83,8 @@ namespace gradc {
             Tensor<T> realize() override {
                 m_parent.realize();
 
-                Tensor<T> result = m_parent; // same metadata as parent (could be just Tensor() presumably bc it gets ripped out by tensor)
-                result.m_storage = std::make_shared<Storage<T>>(*m_parent.m_storage); // totally new data vector
-
-                return result;
+                Tensor<T> result = lobotomized_contiguous(m_parent); // does not copy whole data for a slice
+                return result; 
             }
     };
 
@@ -121,7 +119,7 @@ namespace gradc {
         private:
             Tensor<T> m_parent;
         public:
-            ReshapeNode(Tensor<T> parent) : m_parent(std::move(parent)) {std::cout << ("MOVE GOT SMOKED") << std::endl;}
+            ReshapeNode(Tensor<T> parent) : m_parent(std::move(parent)) {}
 
             Tensor<T> realize() override {
                 m_parent.realize();
