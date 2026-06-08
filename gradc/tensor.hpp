@@ -1,14 +1,12 @@
 #pragma once
 #include "node.hpp"
-#include "graph_fwd.hpp"
+#include "graph_fwd.hpp" // IWYU pragma: keep
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <memory>
 #include <ostream>
-#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -22,6 +20,8 @@ namespace gradc {
 
     template <typename T>
     class Node;
+
+    struct PrintOptions;
 
     struct IndexDesc {
         bool m_is_all;
@@ -155,10 +155,8 @@ namespace gradc {
             template <typename U> friend Tensor<U> lobotomized_broadcast(const Tensor<U>& source, const std::vector<size_t>& target_shape);
             template <typename U> friend Tensor<U> lobotomized_contiguous(const Tensor<U>& source);
 
-            template<typename U> friend std::ostream& operator<<(const std::ostream& stream, const Tensor<U>& source);
-
-            
-            
+            template <typename U> friend std::ostream& print_tensor(std::ostream& stream, const Tensor<U>& source, PrintOptions opts);
+            template <typename U> friend void print_dim(std::ostream& stream, const Tensor<U>& source, const PrintOptions& opts, size_t current_dim, size_t base_offset, bool is_last);
     };
 } 
 

@@ -4,7 +4,6 @@
 #include "tensor.hpp"
 #include "impl/tensor_utils.hpp"
 
-#include <memory>
 #include <utility>
 #include <vector>
 

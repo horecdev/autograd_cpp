@@ -237,43 +237,121 @@ namespace gradc {
 
     template <typename T>
     std::ostream& operator<<(std::ostream& stream, const std::vector<T>& vector) {
+        stream << "[";
         for (size_t i = 0; i < vector.size(); ++i) {
             if (i == vector.size() - 1) {
                 stream << vector[i];
             }
             else {
-                stream << vector[i] << " ";
+                stream << vector[i] << ", ";
             }
             
         }
+        stream << "]";
         return stream;
     }
 
-    template <typename T> // TODO: IMPLEMENT PRINTING
-    std::ostream& operator<<(std::ostream& stream, const Tensor<T>& source) {
-        if (source.m_storage->m_data.empty() && source.m_op != nullptr) {
-            stream << "Not Realized Tensor | Shape: " << source.m_shape << std::endl << " Strides: " << source.m_strides;
+    struct PrintOptions {
+        size_t edge_items = 3;
+        size_t threshold = 7;
+        int dim_indentation = 2;
+        bool show_metadata = true;
+    };
+
+    template <typename T>
+    void print_dim(std::ostream& stream, const Tensor<T>& source, const PrintOptions& opts, size_t current_dim, size_t base_offset, bool is_last) {
+        if (current_dim == source.m_shape.size() - 1) {
+            stream << std::string(current_dim * opts.dim_indentation, ' ') << "[";
+            // print values along the dim
+            if (source.m_shape[current_dim] > 2 * opts.edge_items) {
+                // print edge_items first, edge_items last
+                for (size_t i = 0; i < opts.edge_items; ++i) {
+                    stream << source.m_storage->m_data[base_offset + i * source.m_strides[current_dim]];
+                    stream << ", ";
+                }
+                stream << "..., ";
+
+                for (size_t i = source.m_shape[current_dim] - opts.edge_items; i < source.m_shape[current_dim]; ++i) {
+                    stream << source.m_storage->m_data[base_offset + i * source.m_strides[current_dim]];
+                    if (i != source.m_shape[current_dim] - 1) {
+                        stream << ", ";
+                    }
+                }
+            }
+
+            else {
+                // print everything
+                for (size_t i = 0; i < source.m_shape[current_dim]; ++i) {
+                    stream << source.m_storage->m_data[base_offset + i * source.m_strides[current_dim]];
+                    if (i != source.m_shape[current_dim] - 1) {
+                         stream << ", ";
+                    }
+                } 
+            }
+            stream << "]";
+            if (!is_last) {
+                stream << ",";
+            }
+            stream << std::endl;
+        }
+
+        else {
+            stream << std::string(current_dim * opts.dim_indentation, ' ') << "[" << std::endl;
+            if (source.m_shape[current_dim] > opts.threshold) {
+                // print edge_items first, edge_items last
+                for (size_t i = 0; i < opts.edge_items; ++i) {
+                    print_dim(stream, source, opts, current_dim + 1, base_offset + i * source.m_strides[current_dim], false);
+                }
+                stream << std::string((current_dim + 1) * opts.dim_indentation, ' ') << "..." << std::endl;
+
+                for (size_t i = source.m_shape[current_dim] - opts.edge_items; i < source.m_shape[current_dim]; ++i) {
+                    if (i == source.m_shape[current_dim] - 1) {
+                        print_dim(stream, source, opts, current_dim + 1, base_offset + i * source.m_strides[current_dim], true);
+                    }
+                    else {
+                        print_dim(stream, source, opts, current_dim + 1, base_offset + i * source.m_strides[current_dim], false);
+                    }
+                }
+            }
+
+            else {
+                // print everything
+                for (size_t i = 0; i < source.m_shape[current_dim]; ++i) {
+
+                    if (i == source.m_shape[current_dim] - 1) {
+                        print_dim(stream, source, opts, current_dim + 1, base_offset + i * source.m_strides[current_dim], true);
+                    }
+                    else {
+                        print_dim(stream, source, opts, current_dim + 1, base_offset + i * source.m_strides[current_dim], false);
+                    }
+                }
+            } 
+
+            stream << std::string(current_dim * opts.dim_indentation, ' ');
+            stream << "]";
+            if (!is_last) {
+                stream << ",";
+            }
+            stream << std::endl;
+        }
+    }
+
+    template <typename T>
+    std::ostream& print_tensor(std::ostream& stream, const Tensor<T>& source, PrintOptions opts = {}) { // = {} means use initializer list if nothing is provided (but empty so default construct)
+        if (source.m_shape.size() == 0) {
+            if (opts.show_metadata) {
+                stream << "Grad: " << source.m_requires_grad;
+                return stream;
+            }
+            stream << "Tensor(" << source.item() << ")" << std::endl;
             return stream;
         }
-
-        size_t n_dims = source.m_shape.size();
-        std::vector<size_t> odometer(n_dims, 0);
-        size_t contiguous_idx = 0;
-        while (odometer[0] < source.m_shape[0]) {
-            size_t strided_idx = source.m_offset; 
-
-            for (size_t i = 0; i < n_dims; ++i) {
-                strided_idx += odometer[i] * source.m_strides[i];
-            }
-            T value = (source.m_storage->m_data)[strided_idx];
-            ++odometer[n_dims - 1];
-            size_t i = n_dims - 1;
-            while ((odometer[i] == source.m_shape[i]) && i > 0) {
-                odometer[i] = 0;
-                ++odometer[i - 1];
-                --i;
-            }
+        if (opts.show_metadata) {
+            std::cout << "Shape: " << source.m_shape << " | Strides: " << source.m_strides << " | Grad: " << source.m_requires_grad << std::endl;
         }
-
+        print_dim(stream, source, opts, 0, source.m_offset, true);
+        return stream;
     }
+
+
 }

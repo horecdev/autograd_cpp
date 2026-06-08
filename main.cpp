@@ -1,26 +1,17 @@
 #include <iostream>
 #include <vector>
-#include <stdexcept>
-#include "gradc/gradc.hpp" // Ensure your headers are included
+#include <stdexcept> // IWYU pragma: keep
+#include "gradc/gradc.hpp" // IWYU pragma: keep
 
 using namespace gradc;
 
 int main() {
 
-    try {
-        Tensor<float> a({4, 4}); 
+    Tensor<float> vec({5});
+    Tensor<float> mat({3, 10, 10});
+    auto transposed = mat.transpose(0, 1);
 
-        Tensor<float> d = a.reshape({2, 8});
-
-        std::cout << "HITTING REALIZE" << std::endl;
-
-        d.realize();
-        std::cout << "AFTER REALIZE" << std::endl;
-
-
-    } catch (const std::exception& e) {
-        std::cout << "\nCRITICAL ENGINE FAILURE: " << e.what() << std::endl;
-    }
+    print_tensor(std::cout, mat, {});
 
     return 0;
 }
