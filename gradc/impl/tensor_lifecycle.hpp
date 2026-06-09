@@ -29,7 +29,7 @@ namespace gradc {
         }
 
     template <typename T>
-    Tensor<T>::Tensor(std::vector<size_t> shape, bool requires_grad, LazyTag) 
+    Tensor<T>::Tensor(std::vector<size_t> shape, bool requires_grad, LazyTag)
         // can pass integer as m_strides, because it implicitly constructs a std::vector by just variable(arguments)
         : m_shape(std::move(shape)), m_strides(m_shape.size()), m_offset(0), m_requires_grad(requires_grad) {
             if (m_shape.size() == 0) { // a scalar (0-dimensional)

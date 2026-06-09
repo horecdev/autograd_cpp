@@ -10,6 +10,7 @@
 
 namespace gradc {
     inline std::vector<size_t> infer_broadcast(const std::vector<size_t>& a, const std::vector<size_t>& b) {
+        // works for scalars
         size_t size_a = a.size();
         size_t size_b = b.size();
 
@@ -54,7 +55,7 @@ namespace gradc {
             }
         }
 
-        return inferred_shape;   
+        return inferred_shape;  
     }   
 
     inline bool can_broadcast(const std::vector<size_t>& src, const std::vector<size_t>& target) {
@@ -136,6 +137,11 @@ namespace gradc {
 
     template <typename T, typename Func>
     void apply_in_place(Tensor<T>& left, const Tensor<T>& right, Func op) { 
+        if (left.m_shape.empty() && right.m_shape.empty()) {
+            op(left.m_state->m_storage->m_data[left.m_offset], right.m_state->m_storage->m_data[right.m_offset]);
+            ++left.m_state->m_storage->m_version;
+            return;
+        }
         // Idea behind all the variables - track right variables instead of copying vectors on the heap inside copied Tensors.
         // (you would have to either create a tensor or copy it to hold a variable (or worse - write main logic twice) - why not ONLY create if needed?)
         const std::vector<size_t>* right_strides; // promise not to modify data, (can reassign the pointer)
@@ -177,6 +183,12 @@ namespace gradc {
 
     template <typename T, typename Func>
     Tensor<T> apply_out_of_place(const Tensor<T>& left, const Tensor<T>& right, const std::vector<size_t>& target_shape, Func op) {
+        if (target_shape.size() == 0) { // op on 2 scalars
+            Tensor<T> result = Tensor<T>(target_shape);
+            (result.m_state->m_storage->m_data)[0] = op((left.m_state->m_storage->m_data)[left.m_offset], (right.m_state->m_storage->m_data)[right.m_offset]);
+            return result;
+        }
+
         const std::vector<size_t>* left_strides = &left.m_strides;
         const std::vector<size_t>* right_strides = &right.m_strides;
         size_t left_offset = left.m_offset;
@@ -337,7 +349,6 @@ namespace gradc {
         if (source.m_shape.size() == 0) {
             if (opts.show_metadata) {
                 stream << "Grad: " << source.m_requires_grad;
-                return stream;
             }
             stream << "Tensor(" << source.item() << ")" << std::endl;
             return stream;
