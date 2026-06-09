@@ -44,14 +44,15 @@ namespace gradc {
                 new_offset += static_cast<size_t>(coord) * m_strides[i];
             }
         }
-
-        return Tensor(std::move(new_shape), std::move(new_strides), new_offset, m_storage, std::make_shared<SliceNode<T>>(*this), m_requires_grad);
+        Tensor<T> result = Tensor(std::move(new_shape), std::move(new_strides), new_offset, m_state->m_storage, m_requires_grad);
+        result.m_state->m_op = std::make_unique<SliceNode<T>>(*this);
+        return result;
     }
 
     template <typename T>
     T Tensor<T>::item() const {
         if (m_shape.size() == 0) {
-            return ((*m_storage).m_data)[m_offset];
+            return (m_state->m_storage->m_data)[m_offset];
         }
         else {
             throw std::runtime_error(".item() can be called only on 0-dimensional tensors.");

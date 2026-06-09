@@ -22,7 +22,7 @@ namespace gradc {
 
         bool requires_grad = left.m_requires_grad && right.m_requires_grad;
         Tensor<T> new_tensor = Tensor<T>(target_shape, requires_grad, lazy);
-        new_tensor.m_state->m_op = std::make_unique<AddNode<T>>(std::move(left), std::move(right), std::move(target_shape));
+        new_tensor.m_state->m_realize_op = std::make_unique<AddNode<T>>(std::move(left), std::move(right), std::move(target_shape));
         return new_tensor;
     }
 
@@ -38,13 +38,13 @@ namespace gradc {
 
         bool requires_grad = left.m_requires_grad && right.m_requires_grad;
         Tensor<T> new_tensor = Tensor<T>(target_shape, requires_grad, lazy);
-        new_tensor.m_state->m_op = std::make_unique<MulNode<T>>(std::move(left), std::move(right), std::move(target_shape));
+        new_tensor.m_state->m_realize_op = std::make_unique<MulNode<T>>(std::move(left), std::move(right), std::move(target_shape));
         return new_tensor;
     }
 
     template <typename T>
     Tensor<T>& operator+=(Tensor<T>& main, Tensor<T> other) {
-        if (main.m_requires_grad && main.m_op == nullptr) {
+        if (main.m_requires_grad && main.m_state->m_realize_op == nullptr) {
             throw std::runtime_error("Cannot mutate leaf tensor that requires gradients in-place.");
         }
 
@@ -62,7 +62,7 @@ namespace gradc {
 
     template <typename T>
     Tensor<T>& operator*=(Tensor<T>& main, Tensor<T> other) {
-        if (main.m_requires_grad && main.m_op == nullptr) { // we are using toposort to get rid of temporary results using leaf nodes as a stop-point, and in-place math literally moves it inside the graph.
+        if (main.m_requires_grad && main.m_state->m_realize_op == nullptr) { // we are using toposort to get rid of temporary results using leaf nodes as a stop-point, and in-place math literally moves it inside the graph.
             throw std::runtime_error("Cannot mutate leaf tensor that requires gradients in-place.");
         }
 

@@ -28,7 +28,7 @@ namespace gradc {
     template <typename T>
     Tensor<T> Tensor<T>::contiguous() const {
         Tensor result = Tensor(m_shape, m_requires_grad, lazy);
-        result.m_state->m_op = std::make_unique<ContiguousNode<T>>(*this);
+        result.m_state->m_realize_op = std::make_unique<ContiguousNode<T>>(*this);
 
         return result;
     }

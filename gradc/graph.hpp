@@ -81,7 +81,6 @@ namespace gradc {
 
             Tensor<T> realize() override {
                 m_parent.realize();
-
                 return lobotomized_contiguous(m_parent); // does not copy whole data for a slice
             }
     };
