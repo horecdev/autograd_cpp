@@ -73,6 +73,10 @@ namespace gradc {
         std::shared_ptr<Node<T>> m_realize_op; // nodes can share operation (if aliases of same variable)
 
         TensorState() : m_storage(std::make_shared<Storage<T>>()), m_realize_op(nullptr) {}
+        
+        TensorState(std::vector<T>&& data) : m_storage(std::make_shared<Storage<T>>(std::move(data))), m_realize_op(nullptr) {}
+
+        TensorState(std::shared_ptr<Storage<T>> storage) : m_storage(std::move(storage)), m_realize_op(nullptr) {} // copy tensor storage, set m_r_op to be nothing
 
         TensorState(const TensorState& other) : m_storage(other.m_storage), m_realize_op(other.m_realize_op) {}
         TensorState(TensorState&& other) : m_storage(std::move(other.m_storage)), m_realize_op(std::move(m_realize_op)) {}
@@ -91,8 +95,6 @@ namespace gradc {
             }
             return *this;
         } 
-
-        TensorState(std::vector<T>&& data) : m_storage(std::make_shared<Storage<T>>(std::move(data))), m_realize_op(nullptr) {}
     };
 
     template <typename T>
@@ -120,7 +122,8 @@ namespace gradc {
             Tensor();
             Tensor(std::vector<size_t> shape);
             Tensor(std::vector<size_t> shape, bool requires_grad, LazyTag);
-            Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<TensorState<T>> data, bool requires_grad);
+            Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<Storage<T>> storage, bool requires_grad);
+            Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<TensorState<T>> state, bool requires_grad);
             ~Tensor();
             Tensor(const Tensor& source);
             Tensor(Tensor&& source);

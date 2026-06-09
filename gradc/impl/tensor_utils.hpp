@@ -102,8 +102,7 @@ namespace gradc {
                 throw std::runtime_error("Violated broadcasting rules in lobotomized_broadcast().");
             }
         }
-
-        return Tensor<T>(std::move(new_shape), std::move(new_strides), source.m_offset, source.m_storage, nullptr, false); // lobotomy (no past or future)
+        return Tensor<T>(std::move(new_shape), std::move(new_strides), source.m_offset, source.m_state->m_storage, false); // lobotomy (no past or future)
     }
 
     template <typename T>
@@ -155,7 +154,7 @@ namespace gradc {
 
             right_strides = &broad_right.m_strides;
             right_offset = broad_right.m_offset;
-            right_storage = broad_right.m_storage; // all stuff that increments shared_ptr dies at the end of function.
+            right_storage = broad_right.m_state->m_storage; // all stuff that increments shared_ptr dies at the end of function.
         }
 
         size_t n_dims = left.m_shape.size();
@@ -186,8 +185,8 @@ namespace gradc {
         const std::vector<size_t>* right_strides = &right.m_strides;
         size_t left_offset = left.m_offset;
         size_t right_offset = right.m_offset; 
-        std::shared_ptr<Storage<T>> left_storage = left.m_storage;
-        std::shared_ptr<Storage<T>> right_storage = right.m_storage;
+        std::shared_ptr<Storage<T>> left_storage = left.m_state->m_storage;
+        std::shared_ptr<Storage<T>> right_storage = right.m_state->m_storage;
 
         Tensor<T> broad_right;
         Tensor<T> broad_left;
@@ -197,14 +196,14 @@ namespace gradc {
 
             left_strides = &broad_left.m_strides;
             left_offset = broad_left.m_offset;
-            left_storage = broad_left.m_storage;
+            left_storage = broad_left.m_state->m_storage;
         }
         if (right.m_shape != target_shape) {
             broad_right = lobotomized_broadcast(right, target_shape);
 
             right_strides = &broad_right.m_strides;
             right_offset = broad_right.m_offset;
-            right_storage = broad_right.m_storage;
+            right_storage = broad_right.m_state->m_storage;
         }
         
 
@@ -221,7 +220,7 @@ namespace gradc {
                 left_strided_idx += odometer[i] * (*left_strides)[i];
                 right_strided_idx += odometer[i] * (*right_strides)[i];
             }
-            ((*result.m_storage).m_data)[contiguous_idx] = op(((*left_storage).m_data)[left_strided_idx], ((*right_storage).m_data)[right_strided_idx]); // copied straight into CPU registers from RAM
+            (result.m_state->m_storage->m_data)[contiguous_idx] = op((left_storage->m_data)[left_strided_idx], (right_storage->m_data)[right_strided_idx]); // copied straight into CPU registers from RAM
             ++contiguous_idx;
             ++odometer[n_dims - 1];
             size_t i = n_dims - 1;

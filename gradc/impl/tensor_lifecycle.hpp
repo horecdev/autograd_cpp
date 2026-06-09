@@ -31,22 +31,28 @@ namespace gradc {
     template <typename T>
     Tensor<T>::Tensor(std::vector<size_t> shape, bool requires_grad, LazyTag) 
         // can pass integer as m_strides, because it implicitly constructs a std::vector by just variable(arguments)
-        : m_shape(std::move(shape)), m_strides(m_shape.size()), m_offset(0), m_op(nullptr), m_requires_grad(requires_grad) {
+        : m_shape(std::move(shape)), m_strides(m_shape.size()), m_offset(0), m_requires_grad(requires_grad) {
             if (m_shape.size() == 0) { // a scalar (0-dimensional)
-                m_storage = std::make_shared<Storage<T>>(std::vector<T>(1));
+                m_state = std::make_shared<TensorState<T>>(std::vector<T>(1));
             }
             else {
                 m_strides[m_shape.size() - 1] = 1; 
                 for (size_t i = m_shape.size() - 1; i > 0; --i) {
                     m_strides[i - 1] = m_shape[i] * m_strides[i];
                 }
-                m_storage = std::make_shared<Storage<T>>(); // so that data modified in grad is reflected inside copies (when its copied in state 2 - promise)
+                m_state = std::make_shared<TensorState<T>>();
             }
         }
 
     template <typename T>
-    Tensor<T>::Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<Storage<T>> storage, std::shared_ptr<Node<T>> op, bool requires_grad) // backdoor
-        : m_shape(std::move(shape)), m_strides(std::move(strides)), m_offset(offset), m_storage(std::move(storage)), m_op(std::move(op)), m_requires_grad(requires_grad) {} 
+    Tensor<T>::Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<TensorState<T>> state, bool requires_grad) // backdoor
+        : m_shape(std::move(shape)), m_strides(std::move(strides)), m_offset(offset), m_state(std::move(state)), m_requires_grad(requires_grad) {} 
+
+    template <typename T> // lobotomy constructor
+    Tensor<T>::Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<Storage<T>> storage, bool requires_grad) 
+        : m_shape(std::move(shape)), m_strides(std::move(strides)), m_offset(offset), m_requires_grad(requires_grad) {
+            m_state = std::make_shared<TensorState<T>>(std::move(storage)); // op is nullptr
+        }
     
     template <typename T>
     Tensor<T>::~Tensor() {
