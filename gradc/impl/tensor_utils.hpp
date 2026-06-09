@@ -109,19 +109,19 @@ namespace gradc {
     Tensor<T> lobotomized_contiguous(const Tensor<T>& source) {
         if (source.m_shape.empty()) {
             Tensor<T> scalar_tensor = Tensor<T>(std::vector<size_t>{});
-            ((*scalar_tensor.m_storage).m_data)[0] = ((*source.m_storage).m_data)[source.m_offset];
+            (scalar_tensor.m_state->m_storage->m_data)[0] = (source.m_state->m_storage->m_data)[source.m_offset];
             return scalar_tensor;
         }
-        Tensor<T> new_contiguous = Tensor<T>(source.m_shape); // right shape and strides, but Tensor will rip out only data
+        Tensor<T> new_contiguous = Tensor<T>(source.m_shape);
         size_t n_dims = source.m_shape.size();
-        std::vector<size_t> odometer(n_dims, 0); // zeroed out
+        std::vector<size_t> odometer(n_dims, 0); 
         size_t contiguous_idx = 0;
         while (odometer[0] < source.m_shape[0]) {
             size_t strided_idx = source.m_offset;
             for (size_t i = 0; i < n_dims; ++i) {
                 strided_idx += odometer[i] * source.m_strides[i];
             }
-            ((*new_contiguous.m_storage).m_data)[contiguous_idx] = ((*source.m_storage).m_data)[strided_idx];
+            (new_contiguous.m_state->m_storage->m_data)[contiguous_idx] = (source.m_state->m_storage->m_data)[strided_idx];
             ++contiguous_idx;
             ++odometer[n_dims - 1];
             size_t i = n_dims - 1;
@@ -134,27 +134,23 @@ namespace gradc {
         return new_contiguous;
     }
 
-    // gotta redefine the exact type [since its outside template <typename T> of Tensor class]
     template <typename T, typename Func>
     void apply_in_place(Tensor<T>& left, const Tensor<T>& right, Func op) { 
         // Idea behind all the variables - track right variables instead of copying vectors on the heap inside copied Tensors.
         // (you would have to either create a tensor or copy it to hold a variable (or worse - write main logic twice) - why not ONLY create if needed?)
-        const std::vector<size_t>* right_strides; // promise not to modify data, not reassign the pointer
+        const std::vector<size_t>* right_strides; // promise not to modify data, (can reassign the pointer)
         size_t right_offset;
-        std::shared_ptr<Storage<T>> right_storage;
 
-        Tensor<T> broad_right; // inside Tensor<T>:: space, "Tensor" is replaced with "Tensor<T>" during compilation
+        Tensor<T> broad_right;
         if (left.m_shape == right.m_shape) {
             right_strides = &right.m_strides;
             right_offset = right.m_offset;
-            right_storage = right.m_storage; // shared ptr
         }
         else {
             broad_right = lobotomized_broadcast(right, left.m_shape);
 
             right_strides = &broad_right.m_strides;
             right_offset = broad_right.m_offset;
-            right_storage = broad_right.m_state->m_storage; // all stuff that increments shared_ptr dies at the end of function.
         }
 
         size_t n_dims = left.m_shape.size();
@@ -167,7 +163,7 @@ namespace gradc {
                 left_strided_idx += odometer[i] * left.m_strides[i];
                 right_strided_idx += odometer[i] * (*right_strides)[i];
             }
-            op(((*left.m_storage).m_data)[left_strided_idx], ((*right_storage).m_data)[right_strided_idx]);
+            op((left.m_state->m_storage->m_data)[left_strided_idx], (right.m_state->m_storage->m_data)[right_strided_idx]);
             ++odometer[n_dims - 1];
             size_t i = n_dims - 1;
             while ((odometer[i] == left.m_shape[i]) && i > 0) {
@@ -176,7 +172,7 @@ namespace gradc {
                 --i;
             }
         }
-        ++left.m_storage->m_version;
+        ++left.m_state->m_storage->m_version;
     }
 
     template <typename T, typename Func>
@@ -185,7 +181,7 @@ namespace gradc {
         const std::vector<size_t>* right_strides = &right.m_strides;
         size_t left_offset = left.m_offset;
         size_t right_offset = right.m_offset; 
-        std::shared_ptr<Storage<T>> left_storage = left.m_state->m_storage;
+        std::shared_ptr<Storage<T>> left_storage = left.m_state->m_storage; // broadcasting does not alter memory
         std::shared_ptr<Storage<T>> right_storage = right.m_state->m_storage;
 
         Tensor<T> broad_right;
@@ -196,14 +192,12 @@ namespace gradc {
 
             left_strides = &broad_left.m_strides;
             left_offset = broad_left.m_offset;
-            left_storage = broad_left.m_state->m_storage;
         }
         if (right.m_shape != target_shape) {
             broad_right = lobotomized_broadcast(right, target_shape);
 
             right_strides = &broad_right.m_strides;
             right_offset = broad_right.m_offset;
-            right_storage = broad_right.m_state->m_storage;
         }
         
 
@@ -264,13 +258,13 @@ namespace gradc {
             if (source.m_shape[current_dim] > 2 * opts.edge_items) {
                 // print edge_items first, edge_items last
                 for (size_t i = 0; i < opts.edge_items; ++i) {
-                    stream << source.m_storage->m_data[base_offset + i * source.m_strides[current_dim]];
+                    stream << source.m_state->m_storage->m_data[base_offset + i * source.m_strides[current_dim]];
                     stream << ", ";
                 }
                 stream << "..., ";
 
                 for (size_t i = source.m_shape[current_dim] - opts.edge_items; i < source.m_shape[current_dim]; ++i) {
-                    stream << source.m_storage->m_data[base_offset + i * source.m_strides[current_dim]];
+                    stream << source.m_state->m_storage->m_data[base_offset + i * source.m_strides[current_dim]];
                     if (i != source.m_shape[current_dim] - 1) {
                         stream << ", ";
                     }
@@ -280,7 +274,7 @@ namespace gradc {
             else {
                 // print everything
                 for (size_t i = 0; i < source.m_shape[current_dim]; ++i) {
-                    stream << source.m_storage->m_data[base_offset + i * source.m_strides[current_dim]];
+                    stream << source.m_state->m_storage->m_data[base_offset + i * source.m_strides[current_dim]];
                     if (i != source.m_shape[current_dim] - 1) {
                          stream << ", ";
                     }

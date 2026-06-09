@@ -70,7 +70,7 @@ namespace gradc {
     template <typename T>
     struct TensorState {
         std::shared_ptr<Storage<T>> m_storage; // nodes can share just storage
-        std::shared_ptr<Node<T>> m_realize_op; // nodes can share operation (if aliases of same variable)
+        std::unique_ptr<Node<T>> m_realize_op; // it makes no sense to share m_op, but not storage.
 
         TensorState() : m_storage(std::make_shared<Storage<T>>()), m_realize_op(nullptr) {}
         
@@ -78,16 +78,10 @@ namespace gradc {
 
         TensorState(std::shared_ptr<Storage<T>> storage) : m_storage(std::move(storage)), m_realize_op(nullptr) {} // copy tensor storage, set m_r_op to be nothing
 
-        TensorState(const TensorState& other) : m_storage(other.m_storage), m_realize_op(other.m_realize_op) {}
+        TensorState(std::shared_ptr<Storage<T>> storage, std::unique_ptr<Node<T>> realize_op) : m_storage(std::move(m_storage)), m_realize_op(std::move(realize_op)) {}
+
         TensorState(TensorState&& other) : m_storage(std::move(other.m_storage)), m_realize_op(std::move(m_realize_op)) {}
 
-        TensorState& operator=(const TensorState& other) {
-            if (this != &other) {
-                m_storage = other.m_storage;
-                m_realize_op = other.m_realize_op;
-            }
-            return *this;
-        }
         TensorState& operator=(TensorState&& other) {
             if (this != &other) {
                 m_storage = std::move(other.m_storage);
@@ -95,6 +89,7 @@ namespace gradc {
             }
             return *this;
         } 
+
     };
 
     template <typename T>
@@ -115,7 +110,7 @@ namespace gradc {
                     }
                 }
 
-                m_state->m_op = nullptr; // so we dont realize() twice (reflected across multiple aliases)
+                m_state->m_realize_op = nullptr; // so we dont realize() twice (reflected across multiple aliases)
             }
 
             // LIFECYCLE 

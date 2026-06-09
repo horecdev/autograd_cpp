@@ -33,7 +33,7 @@ namespace gradc {
         // can pass integer as m_strides, because it implicitly constructs a std::vector by just variable(arguments)
         : m_shape(std::move(shape)), m_strides(m_shape.size()), m_offset(0), m_requires_grad(requires_grad) {
             if (m_shape.size() == 0) { // a scalar (0-dimensional)
-                m_state = std::make_shared<TensorState<T>>(std::vector<T>(1));
+                m_state = std::make_shared<TensorState<T>>();
             }
             else {
                 m_strides[m_shape.size() - 1] = 1; 
@@ -44,8 +44,8 @@ namespace gradc {
             }
         }
 
-    template <typename T>
-    Tensor<T>::Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<TensorState<T>> state, bool requires_grad) // backdoor
+    template <typename T> // backdoor
+    Tensor<T>::Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<TensorState<T>> state, bool requires_grad) 
         : m_shape(std::move(shape)), m_strides(std::move(strides)), m_offset(offset), m_state(std::move(state)), m_requires_grad(requires_grad) {} 
 
     template <typename T> // lobotomy constructor
@@ -59,14 +59,14 @@ namespace gradc {
         // std::cout << "Tensor Destroyed" << std::endl;
     }
 
-    template <typename T>
+    template <typename T> // realizing one alias realizes all
     Tensor<T>::Tensor(const Tensor& source) 
-        : m_shape(source.m_shape), m_strides(source.m_strides), m_offset(source.m_offset), m_storage(source.m_storage), m_op(source.m_op), m_requires_grad(source.m_requires_grad) {} // copy constructor (shallow copy) [Tensor b = a]
-        // boosts ref count by 1 (shallow copy)
+        : m_shape(source.m_shape), m_strides(source.m_strides), m_offset(source.m_offset), m_state(source.m_state), m_requires_grad(source.m_requires_grad) {}
+
 
     template <typename T>
     Tensor<T>::Tensor(Tensor&& source) // move constructor [Tensor c = a + b]
-        : m_shape(std::move(source.m_shape)), m_strides(std::move(source.m_strides)), m_offset(source.m_offset), m_storage(std::move(source.m_storage)), m_op(std::move(source.m_op)), m_requires_grad(source.m_requires_grad) {}
+        : m_shape(std::move(source.m_shape)), m_strides(std::move(source.m_strides)), m_offset(source.m_offset), m_state(std::move(source.m_state)), m_requires_grad(source.m_requires_grad) {}
 
     template <typename T>
     Tensor<T>& Tensor<T>::operator=(const Tensor& source) { // copy assignment operator [c = b]
@@ -74,12 +74,8 @@ namespace gradc {
             m_shape = source.m_shape;
             m_strides = source.m_strides;
             m_offset = source.m_offset;
-            m_storage = source.m_storage;
-            m_op = source.m_op; 
+            m_state = source.m_state;
             m_requires_grad = source.m_requires_grad;
-            // all are copied. Increments ref count by 1, and decrements the prev ref count.
-            // we dont have to manually delete everything because its std::vector and std::shared_ptr. Smart classes.
-            // SHALLOW COPY
         }
         return *this;
     }
@@ -90,8 +86,7 @@ namespace gradc {
             m_shape = std::move(source.m_shape);
             m_strides = std::move(source.m_strides);
             m_offset = source.m_offset;
-            m_storage = std::move(source.m_storage);
-            m_op = std::move(source.m_op);
+            m_state = std::move(source.m_state);
             m_requires_grad = source.m_requires_grad;
         }   
         return *this;
@@ -100,7 +95,7 @@ namespace gradc {
     template <typename T>
     Tensor<T> Tensor<T>::clone() const { 
         Tensor<T> tensor_copy = Tensor(m_shape, m_requires_grad, lazy);
-        tensor_copy.m_op = std::make_shared<CloneNode<T>>(*this);
+        tensor_copy.m_state->m_realize_op = std::make_unique<CloneNode<T>>(*this);
         return tensor_copy;
     }
 }

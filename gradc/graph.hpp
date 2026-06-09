@@ -82,8 +82,7 @@ namespace gradc {
             Tensor<T> realize() override {
                 m_parent.realize();
 
-                Tensor<T> result = lobotomized_contiguous(m_parent); // does not copy whole data for a slice
-                return result; 
+                return lobotomized_contiguous(m_parent); // does not copy whole data for a slice
             }
     };
 
@@ -96,7 +95,7 @@ namespace gradc {
 
             Tensor<T> realize() override {
                 m_parent.realize();
-                return lobotomized_contiguous(m_parent); // jsut the storage will be taken over
+                return lobotomized_contiguous(m_parent);
             }
     }; 
 
@@ -109,7 +108,7 @@ namespace gradc {
 
             Tensor<T> realize() override {
                 m_parent.realize();
-                return m_parent; // storages are the same, avoid copying redundant data that will be skimmed over either way.
+                return m_parent;
             }
     };
 
@@ -122,7 +121,7 @@ namespace gradc {
 
             Tensor<T> realize() override {
                 m_parent.realize();
-                return m_parent; // same as comment above
+                return m_parent; 
             }
     };
 
@@ -135,7 +134,7 @@ namespace gradc {
 
             Tensor<T> realize() override {
                 m_parent.realize();
-                return m_parent; // same as comment above
+                return m_parent;
             }
     };
 

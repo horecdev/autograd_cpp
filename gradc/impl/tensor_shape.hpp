@@ -28,7 +28,7 @@ namespace gradc {
     template <typename T>
     Tensor<T> Tensor<T>::contiguous() const {
         Tensor result = Tensor(m_shape, m_requires_grad, lazy);
-        result.m_op = std::make_shared<ContiguousNode<T>>(*this);
+        result.m_state->m_op = std::make_unique<ContiguousNode<T>>(*this);
 
         return result;
     }
@@ -40,7 +40,8 @@ namespace gradc {
         std::swap(new_shape[dim0], new_shape[dim1]);
         std::swap(new_strides[dim0], new_strides[dim1]);
 
-        return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_storage, std::make_shared<TransposeNode<T>>(*this), m_requires_grad);
+        Tensor result = Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_state->m_storage, m_requires_grad);
+        result.m_state->m_realize_op = std::make_unique<TransposeNode<T>>(*this); 
     }
 
     template <typename T>
@@ -59,8 +60,9 @@ namespace gradc {
             new_shape[target_ax] = m_shape[src_ax];
             new_strides[target_ax] = m_strides[src_ax];
         }
-
-        return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_storage, std::make_shared<PermuteNode<T>>(*this), m_requires_grad);
+        Tensor result = Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_state->m_storage, m_requires_grad);
+        result.m_state->m_realize_op = std::make_unique<PermuteNode<T>>(*this);
+        return result;
     }
 
     template <typename T>
@@ -106,12 +108,15 @@ namespace gradc {
         }
 
         if (this->is_contiguous()) {
-            return Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_storage, std::make_shared<ReshapeNode<T>>(*this), m_requires_grad);
+            Tensor result = Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_state->m_storage, m_requires_grad);
+            result.m_state->m_realize_op = std::make_unique<ReshapeNode<T>>(*this);
+            return result;
         }
         else {
-            Tensor contiguous_tensor = this->contiguous(); // has right metadata 
-            return Tensor(std::move(new_shape), std::move(new_strides), contiguous_tensor.m_offset, contiguous_tensor.m_storage, std::make_shared<ReshapeNode<T>>(contiguous_tensor), contiguous_tensor.m_requires_grad);
-
+            Tensor contiguous_tensor = this->contiguous(); // has right metadata and storage (lazy node)
+            Tensor result = Tensor(std::move(new_shape), std::move(new_strides), 0, contiguous_tensor.m_state->m_storage, m_requires_grad);
+            result.m_state->m_realize_op = std::make_unique<ReshapeNode<T>>(std::move(contiguous_tensor));
+            return result;
         }
     }
 }

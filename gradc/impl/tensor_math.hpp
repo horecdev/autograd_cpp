@@ -22,7 +22,7 @@ namespace gradc {
 
         bool requires_grad = left.m_requires_grad && right.m_requires_grad;
         Tensor<T> new_tensor = Tensor<T>(target_shape, requires_grad, lazy);
-        new_tensor.m_state->m_op = std::make_shared<AddNode<T>>(std::move(left), std::move(right), std::move(target_shape));
+        new_tensor.m_state->m_op = std::make_unique<AddNode<T>>(std::move(left), std::move(right), std::move(target_shape));
         return new_tensor;
     }
 
@@ -38,7 +38,7 @@ namespace gradc {
 
         bool requires_grad = left.m_requires_grad && right.m_requires_grad;
         Tensor<T> new_tensor = Tensor<T>(target_shape, requires_grad, lazy);
-        new_tensor.m_op = std::make_shared<MulNode<T>>(std::move(left), std::move(right), std::move(target_shape));
+        new_tensor.m_state->m_op = std::make_unique<MulNode<T>>(std::move(left), std::move(right), std::move(target_shape));
         return new_tensor;
     }
 
@@ -54,10 +54,9 @@ namespace gradc {
                 throw std::runtime_error("Could not broadcast RHS to match LHS during in-place operation.");
             }
         }
-        
-        Tensor<T> old_main = main; // copy history up to this point
-        main.m_op = std::make_shared<InPlaceAddNode<T>>(std::move(old_main), std::move(other));
-        
+        TensorState<T> old_tensor_state = TensorState(main.m_state->m_storage, std::move(main.m_state->m_realize_op));
+        Tensor<T> old_main = Tensor<T>(main.m_shape, main.m_strides, main.m_offset, std::move(old_tensor_state), main.m_requires_grad);
+        main.m_state->m_realize_op = std::make_unique<InPlaceAddNode<T>>(std::move(old_main), std::move(other));
         return main;
     }
 
@@ -74,9 +73,9 @@ namespace gradc {
             }
         }
         
-        Tensor<T> old_main = main; // copy history up to this point
-        main.m_op = std::make_shared<InPlaceMulNode<T>>(std::move(old_main), std::move(other));
-        
+        TensorState<T> old_tensor_state = TensorState(main.m_state->m_storage, std::move(main.m_state->m_realize_op));
+        Tensor<T> old_main = Tensor<T>(main.m_shape, main.m_strides, main.m_offset, std::move(old_tensor_state), main.m_requires_grad);
+        main.m_state->m_realize_op = std::make_unique<InPlaceMulNode<T>>(std::move(old_main), std::move(other));
         return main;
     }
 
