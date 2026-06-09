@@ -51,10 +51,10 @@ namespace gradc {
             Tensor<T> realize() override {
                 m_left.realize();
                 m_right.realize();
-                apply_in_place(m_left, m_right, [](T& a, T b){a += b;}); // version is bumped up, modifies m_left
+                apply_in_place(m_left, m_right, [](T& a, T b){a += b;}); 
                 return m_left;
             }
-    };
+        };
 
     template <typename T>
     class InPlaceMulNode : public Node<T> {

@@ -54,7 +54,7 @@ namespace gradc {
                 throw std::runtime_error("Could not broadcast RHS to match LHS during in-place operation.");
             }
         }
-        TensorState<T> old_tensor_state = TensorState(main.m_state->m_storage, std::move(main.m_state->m_realize_op));
+        std::shared_ptr<TensorState<T>> old_tensor_state = std::make_shared<TensorState<T>>(main.m_state->m_storage, std::move(main.m_state->m_realize_op));
         Tensor<T> old_main = Tensor<T>(main.m_shape, main.m_strides, main.m_offset, std::move(old_tensor_state), main.m_requires_grad);
         main.m_state->m_realize_op = std::make_unique<InPlaceAddNode<T>>(std::move(old_main), std::move(other));
         return main;
@@ -73,11 +73,9 @@ namespace gradc {
             }
         }
         
-        TensorState<T> old_tensor_state = TensorState(main.m_state->m_storage, std::move(main.m_state->m_realize_op));
+        std::shared_ptr<TensorState<T>> old_tensor_state = std::make_shared<TensorState<T>>(main.m_state->m_storage, std::move(main.m_state->m_realize_op));
         Tensor<T> old_main = Tensor<T>(main.m_shape, main.m_strides, main.m_offset, std::move(old_tensor_state), main.m_requires_grad);
         main.m_state->m_realize_op = std::make_unique<InPlaceMulNode<T>>(std::move(old_main), std::move(other));
         return main;
     }
-
-
 }

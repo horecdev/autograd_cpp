@@ -45,7 +45,7 @@ namespace gradc {
             }
         }
         Tensor<T> result = Tensor(std::move(new_shape), std::move(new_strides), new_offset, m_state->m_storage, m_requires_grad);
-        result.m_state->m_op = std::make_unique<SliceNode<T>>(*this);
+        result.m_state->m_realize_op = std::make_unique<SliceNode<T>>(*this);
         return result;
     }
 

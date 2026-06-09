@@ -42,6 +42,7 @@ namespace gradc {
 
         Tensor result = Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_state->m_storage, m_requires_grad);
         result.m_state->m_realize_op = std::make_unique<TransposeNode<T>>(*this); 
+        return result;
     }
 
     template <typename T>

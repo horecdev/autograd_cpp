@@ -78,7 +78,7 @@ namespace gradc {
 
         TensorState(std::shared_ptr<Storage<T>> storage) : m_storage(std::move(storage)), m_realize_op(nullptr) {} // copy tensor storage, set m_r_op to be nothing
 
-        TensorState(std::shared_ptr<Storage<T>> storage, std::unique_ptr<Node<T>> realize_op) : m_storage(std::move(m_storage)), m_realize_op(std::move(realize_op)) {}
+        TensorState(std::shared_ptr<Storage<T>> storage, std::unique_ptr<Node<T>> realize_op) : m_storage(std::move(storage)), m_realize_op(std::move(realize_op)) {}
 
         TensorState(TensorState&& other) : m_storage(std::move(other.m_storage)), m_realize_op(std::move(m_realize_op)) {}
 
@@ -181,7 +181,8 @@ namespace gradc {
 
             template <typename U> friend std::ostream& print_tensor(std::ostream& stream, const Tensor<U>& source, PrintOptions opts);
             template <typename U> friend void print_dim(std::ostream& stream, const Tensor<U>& source, const PrintOptions& opts, size_t current_dim, size_t base_offset, bool is_last);
-    };
+            template <typename U> friend class InPlaceAddNode;
+    };      
 } 
 
    
