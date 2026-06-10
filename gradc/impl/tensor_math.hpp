@@ -20,7 +20,7 @@ namespace gradc {
             target_shape = left.m_shape;
         }
 
-        bool requires_grad = left.m_requires_grad && right.m_requires_grad;
+        bool requires_grad = left.m_requires_grad || right.m_requires_grad;
         Tensor<T> new_tensor = Tensor<T>(target_shape, requires_grad, lazy);
         new_tensor.m_state->m_realize_op = std::make_unique<AddNode<T>>(std::move(left), std::move(right), std::move(target_shape));
         return new_tensor;
@@ -36,7 +36,7 @@ namespace gradc {
             target_shape = left.m_shape;
         }
 
-        bool requires_grad = left.m_requires_grad && right.m_requires_grad;
+        bool requires_grad = left.m_requires_grad || right.m_requires_grad;
         Tensor<T> new_tensor = Tensor<T>(target_shape, requires_grad, lazy);
         new_tensor.m_state->m_realize_op = std::make_unique<MulNode<T>>(std::move(left), std::move(right), std::move(target_shape));
         return new_tensor;
@@ -57,6 +57,7 @@ namespace gradc {
         std::shared_ptr<TensorState<T>> old_tensor_state = std::make_shared<TensorState<T>>(main.m_state->m_storage, std::move(main.m_state->m_realize_op));
         Tensor<T> old_main = Tensor<T>(main.m_shape, main.m_strides, main.m_offset, std::move(old_tensor_state), main.m_requires_grad);
         main.m_state->m_realize_op = std::make_unique<InPlaceAddNode<T>>(std::move(old_main), std::move(other));
+        main.m_requires_grad = main.m_requires_grad || other.m_requires_grad;
         return main;
     }
 
@@ -76,6 +77,7 @@ namespace gradc {
         std::shared_ptr<TensorState<T>> old_tensor_state = std::make_shared<TensorState<T>>(main.m_state->m_storage, std::move(main.m_state->m_realize_op));
         Tensor<T> old_main = Tensor<T>(main.m_shape, main.m_strides, main.m_offset, std::move(old_tensor_state), main.m_requires_grad);
         main.m_state->m_realize_op = std::make_unique<InPlaceMulNode<T>>(std::move(old_main), std::move(other));
+        main.m_requires_grad = main.m_requires_grad || other.m_requires_grad;
         return main;
     }
 }

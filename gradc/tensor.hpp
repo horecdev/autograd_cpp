@@ -150,18 +150,26 @@ namespace gradc {
                 return m_requires_grad;
             }
 
+            const auto get_realize_op_ptr_type() const {
+                if (m_state->m_realize_op == nullptr) {
+                    return "nullptr";
+                }
+                return typeid(*m_state->m_realize_op).name();
+            }
+
             // SETTERS
             void set_data(std::vector<T> data) {
                 this->m_state->m_storage->m_data = data; // copy vector
             }
-            void set_requires_grad(bool value) {
+            Tensor& set_requires_grad(bool value) {
                 m_requires_grad = value;
+                return *this;
             }
 
             // SHAPES
             bool is_contiguous() const;
             Tensor contiguous() const;
-            Tensor transpose(const size_t dim0, const size_t dim1) const;
+            Tensor transpose(const int64_t dim0, const int64_t dim1) const;
             Tensor permute(const std::vector<int64_t>& axes) const;
             Tensor reshape(const std::vector<int64_t>& target_shape) const;
 
@@ -181,7 +189,7 @@ namespace gradc {
 
             template <typename U> friend std::ostream& print_tensor(std::ostream& stream, const Tensor<U>& source, PrintOptions opts);
             template <typename U> friend void print_dim(std::ostream& stream, const Tensor<U>& source, const PrintOptions& opts, size_t current_dim, size_t base_offset, bool is_last);
-            template <typename U> friend class InPlaceAddNode;
+            friend int main();
     };      
 } 
 

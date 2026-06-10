@@ -348,7 +348,7 @@ namespace gradc {
         }
         if (source.m_shape.size() == 0) {
             if (opts.show_metadata) {
-                stream << "Grad: " << source.m_requires_grad;
+                stream << "Grad: " << source.m_requires_grad << std::endl;
             }
             stream << "Tensor(" << source.item() << ")" << std::endl;
             return stream;

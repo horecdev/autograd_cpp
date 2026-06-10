@@ -59,7 +59,7 @@ namespace gradc {
         // std::cout << "Tensor Destroyed" << std::endl;
     }
 
-    template <typename T> // realizing one alias realizes all
+    template <typename T> // realizing one alias realizes all (shared TensorState)
     Tensor<T>::Tensor(const Tensor& source) 
         : m_shape(source.m_shape), m_strides(source.m_strides), m_offset(source.m_offset), m_state(source.m_state), m_requires_grad(source.m_requires_grad) {}
 

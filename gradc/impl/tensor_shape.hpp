@@ -3,6 +3,7 @@
 #include "../tensor.hpp"
 #include "../graph.hpp"
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -34,7 +35,16 @@ namespace gradc {
     }
 
     template <typename T>
-    Tensor<T> Tensor<T>::transpose(const size_t dim0, const size_t dim1) const {
+    Tensor<T> Tensor<T>::transpose(int64_t dim0, int64_t dim1) const {
+        if (dim0 >= m_shape.size() || dim1 >= m_shape.size()) {
+
+        }
+        if (dim0 < 0) {dim0 = m_shape.size() + dim0;}
+        if (dim1 < 0) {dim0 = m_shape.size() + dim0;}
+        if (dim0 >= m_shape.size() || dim1 >= m_shape.size()) {
+            throw std::out_of_range("Invalid indices for .transpose() - index out of shape bounds");
+        }
+
         std::vector<size_t> new_shape = m_shape;
         std::vector<size_t> new_strides = m_strides;
         std::swap(new_shape[dim0], new_shape[dim1]);
@@ -53,11 +63,20 @@ namespace gradc {
         }
         std::vector<size_t> new_shape = std::vector<size_t>(n_dim);
         std::vector<size_t> new_strides = std::vector<size_t>(n_dim);
+        std::vector<bool> seen_axes = std::vector<bool>(n_dim, false);
         for (size_t target_ax = 0; target_ax < n_dim; ++target_ax) {
             int64_t src_ax = axes[target_ax];
             if (src_ax < 0) {
                 src_ax = n_dim + src_ax;
             }
+            if (src_ax >= n_dim) {
+                throw std::out_of_range("Invalid indices for .permute() - index out of shape bounds");
+            }
+            if (seen_axes[src_ax]) {
+                throw std::runtime_error("Passed at least one axis twice inside .permute()");
+            }
+            seen_axes[src_ax] = true;
+             
             new_shape[target_ax] = m_shape[src_ax];
             new_strides[target_ax] = m_strides[src_ax];
         }
