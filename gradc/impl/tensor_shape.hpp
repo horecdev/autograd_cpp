@@ -36,12 +36,9 @@ namespace gradc {
 
     template <typename T>
     Tensor<T> Tensor<T>::transpose(int64_t dim0, int64_t dim1) const {
-        if (dim0 >= m_shape.size() || dim1 >= m_shape.size()) {
-
-        }
         if (dim0 < 0) {dim0 = m_shape.size() + dim0;}
         if (dim1 < 0) {dim0 = m_shape.size() + dim0;}
-        if (dim0 >= m_shape.size() || dim1 >= m_shape.size()) {
+        if (static_cast<size_t>(dim0) >= m_shape.size() || static_cast<size_t>(dim1) >= m_shape.size()) {
             throw std::out_of_range("Invalid indices for .transpose() - index out of shape bounds");
         }
 
@@ -76,7 +73,7 @@ namespace gradc {
                 throw std::runtime_error("Passed at least one axis twice inside .permute()");
             }
             seen_axes[src_ax] = true;
-             
+
             new_shape[target_ax] = m_shape[src_ax];
             new_strides[target_ax] = m_strides[src_ax];
         }
