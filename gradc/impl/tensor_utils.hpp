@@ -76,8 +76,8 @@ namespace gradc {
 
     template <typename T>
     Tensor<T> lobotomized_broadcast(const Tensor<T>& source, const std::vector<size_t>& target_shape) {
-        int64_t n_dim_orig = static_cast<int64_t>(source.m_shape.size());
-        int64_t n_dim_target = static_cast<int64_t>(target_shape.size());
+        const int64_t n_dim_orig = static_cast<int64_t>(source.m_shape.size());
+        const int64_t n_dim_target = static_cast<int64_t>(target_shape.size());
         std::vector<size_t> new_shape = std::vector<size_t>(n_dim_target);
         std::vector<size_t> new_strides = std::vector<size_t>(n_dim_target);
 
@@ -114,18 +114,18 @@ namespace gradc {
             return scalar_tensor;
         }
         Tensor<T> new_contiguous = Tensor<T>(source.m_shape);
-        size_t n_dims = source.m_shape.size();
-        std::vector<size_t> odometer(n_dims, 0); 
+        const size_t n_dim = source.m_shape.size();
+        std::vector<size_t> odometer(n_dim, 0); 
         size_t contiguous_idx = 0;
         while (odometer[0] < source.m_shape[0]) {
             size_t strided_idx = source.m_offset;
-            for (size_t i = 0; i < n_dims; ++i) {
+            for (size_t i = 0; i < n_dim; ++i) {
                 strided_idx += odometer[i] * source.m_strides[i];
             }
             (new_contiguous.m_state->m_storage->m_data)[contiguous_idx] = (source.m_state->m_storage->m_data)[strided_idx];
             ++contiguous_idx;
-            ++odometer[n_dims - 1];
-            size_t i = n_dims - 1;
+            ++odometer[n_dim - 1];
+            size_t i = n_dim - 1;
             while ((odometer[i] == source.m_shape[i]) && i > 0) {
                 odometer[i] = 0;
                 ++odometer[i - 1];
@@ -159,19 +159,19 @@ namespace gradc {
             right_offset = broad_right.m_offset;
         }
 
-        size_t n_dims = left.m_shape.size();
-        std::vector<size_t> odometer(n_dims, 0);
+        const size_t n_dim = left.m_shape.size();
+        std::vector<size_t> odometer(n_dim, 0);
         while (odometer[0] < left.m_shape[0]) {
             size_t left_strided_idx = left.m_offset; 
             size_t right_strided_idx = right_offset;
 
-            for (size_t i = 0; i < n_dims; ++i) {
+            for (size_t i = 0; i < n_dim; ++i) {
                 left_strided_idx += odometer[i] * left.m_strides[i];
                 right_strided_idx += odometer[i] * (*right_strides)[i];
             }
             op((left.m_state->m_storage->m_data)[left_strided_idx], (right.m_state->m_storage->m_data)[right_strided_idx]);
-            ++odometer[n_dims - 1];
-            size_t i = n_dims - 1;
+            ++odometer[n_dim - 1];
+            size_t i = n_dim - 1;
             while ((odometer[i] == left.m_shape[i]) && i > 0) {
                 odometer[i] = 0;
                 ++odometer[i - 1];
@@ -215,21 +215,21 @@ namespace gradc {
 
         Tensor<T> result = Tensor<T>(target_shape);
 
-        size_t n_dims = target_shape.size();
-        std::vector<size_t> odometer(n_dims, 0);
+        const size_t n_dim = target_shape.size();
+        std::vector<size_t> odometer(n_dim, 0);
         size_t contiguous_idx = 0;
         while (odometer[0] < target_shape[0]) {
             size_t left_strided_idx = left_offset; 
             size_t right_strided_idx = right_offset;
 
-            for (size_t i = 0; i < n_dims; ++i) {
+            for (size_t i = 0; i < n_dim; ++i) {
                 left_strided_idx += odometer[i] * (*left_strides)[i];
                 right_strided_idx += odometer[i] * (*right_strides)[i];
             }
             (result.m_state->m_storage->m_data)[contiguous_idx] = op((left_storage->m_data)[left_strided_idx], (right_storage->m_data)[right_strided_idx]); // copied straight into CPU registers from RAM
             ++contiguous_idx;
-            ++odometer[n_dims - 1];
-            size_t i = n_dims - 1;
+            ++odometer[n_dim - 1];
+            size_t i = n_dim - 1;
             while ((odometer[i] == target_shape[i]) && i > 0) {
                 odometer[i] = 0;
                 ++odometer[i - 1];
@@ -369,6 +369,23 @@ namespace gradc {
                 return stream;
             }
         }
+    }
+
+    inline int64_t normalize_axis(int64_t axis, int64_t n_dim) {
+        if (axis < 0) {axis += n_dim;}
+        if (axis < 0 || axis >= n_dim) {
+            throw std::out_of_range("Axis out of bounds");
+        }
+        return axis;
+    }
+
+    inline size_t calculate_dim_product(std::vector<size_t> shape) {
+        size_t dim_product = 1;
+        for (size_t i = 0; i < shape.size(); ++i) {
+            dim_product *= shape[i];
+        }
+
+        return dim_product;
     }
 
 

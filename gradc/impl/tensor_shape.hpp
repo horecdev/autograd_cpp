@@ -2,8 +2,8 @@
 
 #include "../tensor.hpp"
 #include "../graph.hpp"
+#include "tensor_utils.hpp"
 
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -36,11 +36,9 @@ namespace gradc {
 
     template <typename T>
     Tensor<T> Tensor<T>::transpose(int64_t dim0, int64_t dim1) const {
-        if (dim0 < 0) {dim0 = m_shape.size() + dim0;}
-        if (dim1 < 0) {dim0 = m_shape.size() + dim0;}
-        if (static_cast<size_t>(dim0) >= m_shape.size() || static_cast<size_t>(dim1) >= m_shape.size()) {
-            throw std::out_of_range("Invalid indices for .transpose() - index out of shape bounds");
-        }
+        const int64_t n_dim = static_cast<int64_t>(m_shape.size());
+        dim0 = normalize_axis(dim0, n_dim);
+        dim1 = normalize_axis(dim1, n_dim);
 
         std::vector<size_t> new_shape = m_shape;
         std::vector<size_t> new_strides = m_strides;
@@ -54,7 +52,7 @@ namespace gradc {
 
     template <typename T>
     Tensor<T> Tensor<T>::permute(const std::vector<int64_t>& axes) const {
-        size_t n_dim = m_shape.size();
+        const int64_t n_dim = static_cast<int64_t>(m_shape.size());
         if (axes.size() != n_dim) {
             throw std::runtime_error("permute() axes list size must match shape list size.");
         }
@@ -63,12 +61,7 @@ namespace gradc {
         std::vector<bool> seen_axes = std::vector<bool>(n_dim, false);
         for (size_t target_ax = 0; target_ax < n_dim; ++target_ax) {
             int64_t src_ax = axes[target_ax];
-            if (src_ax < 0) {
-                src_ax = n_dim + src_ax;
-            }
-            if (src_ax >= n_dim) {
-                throw std::out_of_range("Invalid indices for .permute() - index out of shape bounds");
-            }
+            src_ax = normalize_axis(src_ax, n_dim);
             if (seen_axes[src_ax]) {
                 throw std::runtime_error("Passed at least one axis twice inside .permute()");
             }

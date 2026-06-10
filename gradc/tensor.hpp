@@ -183,6 +183,11 @@ namespace gradc {
             template <typename U> friend Tensor<U>& operator+=(Tensor<U>& main, Tensor<U> other);
             template <typename U> friend Tensor<U>& operator*=(Tensor<U>& main, Tensor<U> other);
 
+            // REDUCTIONS
+
+            Tensor sum(std::vector<int64_t>& axes, bool keepdims);
+            Tensor mean(std::vector<int64_t>& axes, bool keepdims);
+
             // UTILS
             template <typename U> friend Tensor<U> lobotomized_broadcast(const Tensor<U>& source, const std::vector<size_t>& target_shape);
             template <typename U> friend Tensor<U> lobotomized_contiguous(const Tensor<U>& source);

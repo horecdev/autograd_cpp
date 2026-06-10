@@ -2,6 +2,7 @@
 
 #include "../tensor.hpp"
 #include "../graph.hpp"
+#include "tensor_utils.hpp"
 
 #include <array>
 #include <cstddef>
@@ -34,13 +35,7 @@ namespace gradc {
             }
             else {
                 int64_t coord = descriptors[i].m_value;
-                if (descriptors[i].m_value < 0) { // (-1 on shape 4 becomes 3)
-                    coord += static_cast<int64_t>(m_shape[i]);
-                }
-
-                if (coord < 0 || coord >= static_cast<int64_t>(m_shape[i])) {
-                    throw std::out_of_range("Index out of bounds for tensor dimension.");
-                }
+                coord = normalize_axis(coord, static_cast<int64_t>(m_shape[i]));
                 new_offset += static_cast<size_t>(coord) * m_strides[i];
             }
         }
