@@ -73,6 +73,20 @@ namespace gradc {
     };
 
     template <typename T>
+    class SumNode : public Node<T> {
+        private:
+            Tensor<T> m_parent;
+            std::vector<size_t> m_target_shape;
+        public:
+            SumNode(Tensor<T> parent, std::vector<size_t> target_shape) : m_parent(parent), m_target_shape(target_shape) {}
+
+            Tensor<T> realize() override {
+                m_parent.realize();
+                return 
+            }
+    }
+
+    template <typename T>
     class CloneNode : public Node<T> {
         private:
             Tensor<T> m_parent;

@@ -12,16 +12,13 @@
 
 namespace gradc {
 
+    // random structs that are useful
+
     struct Placeholder{};
     inline constexpr Placeholder _ = Placeholder(); // inline doesnt confuse linker if its #included in 2+ files.
 
     struct LazyTag{};
     inline constexpr LazyTag lazy = LazyTag();
-
-    template <typename T>
-    class Node;
-
-    struct PrintOptions;
 
     struct IndexDesc {
         bool m_is_all;
@@ -34,6 +31,20 @@ namespace gradc {
             : m_value(0), m_is_all(true) {}
     };
 
+    struct PrintOptions;
+
+    struct ReductionMetadata{
+        std::vector<size_t> temp_shape;
+        std::vector<size_t> temp_strides;
+        std::vector<size_t> result_shape;
+        std::vector<size_t> result_strides;
+    };
+
+    template <typename T>
+    class Node;
+
+
+
     template <typename T>
     struct Storage{
         std::vector<T> m_data;
@@ -44,9 +55,9 @@ namespace gradc {
         Storage(std::vector<T>&& data) : m_data(std::move(data)), m_version(0) {}
         // If there is a new buffer - zero out the version.
         Storage(const Storage& other) : m_data(other.m_data), m_version(0) {}
-        Storage(Storage&& other) : m_data(std::move(other.m_data)), m_version(0) {}
+        Storage(Storage&& other) noexcept : m_data(std::move(other.m_data)), m_version(0) {}
         
-        Storage& operator=(const Storage& other) {
+        Storage& operator=(const Storage& other) noexcept {
             if (this != &other) {
                 m_data = other.m_data; // copy deep
                 m_version = 0;
@@ -79,17 +90,6 @@ namespace gradc {
         TensorState(std::shared_ptr<Storage<T>> storage) : m_storage(std::move(storage)), m_realize_op(nullptr) {} // copy tensor storage, set m_r_op to be nothing
 
         TensorState(std::shared_ptr<Storage<T>> storage, std::unique_ptr<Node<T>> realize_op) : m_storage(std::move(storage)), m_realize_op(std::move(realize_op)) {}
-
-        TensorState(TensorState&& other) : m_storage(std::move(other.m_storage)), m_realize_op(std::move(m_realize_op)) {}
-
-        TensorState& operator=(TensorState&& other) {
-            if (this != &other) {
-                m_storage = std::move(other.m_storage);
-                m_realize_op = std::move(other.m_realize_op);
-            }
-            return *this;
-        } 
-
     };
 
     template <typename T>
