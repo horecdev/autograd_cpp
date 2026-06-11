@@ -117,6 +117,7 @@ namespace gradc {
 
             // LIFECYCLE 
             Tensor();
+            Tensor(T value);
             Tensor(std::vector<size_t> shape, T init_val = T());
             Tensor(std::vector<size_t> shape, bool requires_grad, LazyTag);
             Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<Storage<T>> storage, bool requires_grad);
@@ -180,16 +181,16 @@ namespace gradc {
             template <typename U, typename Func> friend Tensor<U> apply_out_of_place(const Tensor<U>& left, const Tensor<U>& right, const std::vector<size_t>& target_shape, Func op);
             template <typename U, typename Func> friend Tensor<U> apply_reduction_operation(const Tensor<T> &source, const ReductionMetadata reduction_metadata, T init_value, Func op);
 
-            template <typename U> friend Tensor<U> operator+(Tensor<U> left, Tensor<U> right); // we befriend whole family of functions named operator+. 
-            template <typename U> friend Tensor<U> operator*(Tensor<U> left, Tensor<U> right); // It operates on type U and U can be virtually anything
+            template <typename U> friend Tensor<U> operator+(const Tensor<U> left, const Tensor<U> right); // we befriend whole family of functions named operator+. 
+            template <typename U> friend Tensor<U> operator*(const Tensor<U> left, const Tensor<U> right); // It operates on type U and U can be virtually anything
 
-            template <typename U> friend Tensor<U>& operator+=(Tensor<U>& main, Tensor<U> other);
-            template <typename U> friend Tensor<U>& operator*=(Tensor<U>& main, Tensor<U> other);
+            template <typename U> friend Tensor<U>& operator+=(Tensor<U>& main, const Tensor<U> other);
+            template <typename U> friend Tensor<U>& operator*=(Tensor<U>& main, const Tensor<U> other);
 
             // REDUCTIONS
 
-            Tensor sum(std::vector<int64_t>& axes, bool keepdims);
-            Tensor mean(std::vector<int64_t>& axes, bool keepdims);
+            Tensor sum(std::vector<int64_t>& axes, bool keepdims) const;
+            Tensor mean(std::vector<int64_t>& axes, bool keepdims) const;
 
             // UTILS
             template <typename U> friend Tensor<U> lobotomized_broadcast(const Tensor<U>& source, const std::vector<size_t>& target_shape);

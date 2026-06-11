@@ -87,6 +87,23 @@ namespace gradc {
     };
 
     template <typename T>
+    class MeanNode : public Node<T> {
+        private:
+            Tensor<T> m_parent;
+            ReductionMetadata m_reduction_metadata;
+        public:
+            MeanNode(Tensor<T> parent, ReductionMetadata reduction_metadata) : m_parent(parent), m_reduction_metadata(reduction_metadata) {}
+
+            Tensor<T> realize() override {
+                m_parent.realize();
+                Tensor<T> summed = apply_reduction_operation(m_parent, m_reduction_metadata, T(), [](T a, T b){return a + b;});
+                apply_in_place(summed, Tensor<T>(m_reduction_metadata.reduced_vol), [](T& a, T b){a /= b;});
+                return summed;
+            }
+    };
+
+
+    template <typename T>
     class CloneNode : public Node<T> {
         private:
             Tensor<T> m_parent;

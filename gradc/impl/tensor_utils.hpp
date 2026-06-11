@@ -341,7 +341,7 @@ namespace gradc {
     }
 
     template <typename T>
-    std::ostream& print_tensor(std::ostream& stream, const Tensor<T>& source, PrintOptions opts = {}) { // = {} means use initializer list if nothing is provided (but empty so default construct)
+    std::ostream& print_tensor(std::ostream& stream, const Tensor<T>& source, const PrintOptions opts = {}) { // = {} means use initializer list if nothing is provided (but empty so default construct)
         if (source.m_shape.size() == 0) {
             if (opts.show_metadata) {
                 stream << "Grad: " << source.m_requires_grad << std::endl;
