@@ -76,15 +76,15 @@ namespace gradc {
     class SumNode : public Node<T> {
         private:
             Tensor<T> m_parent;
-            std::vector<size_t> m_target_shape;
+            ReductionMetadata m_reduction_metadata;
         public:
-            SumNode(Tensor<T> parent, std::vector<size_t> target_shape) : m_parent(parent), m_target_shape(target_shape) {}
+            SumNode(Tensor<T> parent, ReductionMetadata reduction_metadata) : m_parent(parent), m_reduction_metadata(reduction_metadata) {}
 
             Tensor<T> realize() override {
                 m_parent.realize();
-                return 
+                return apply_reduction_operation(m_parent, m_reduction_metadata, T(), [](T a, T b){return a + b;});
             }
-    }
+    };
 
     template <typename T>
     class CloneNode : public Node<T> {

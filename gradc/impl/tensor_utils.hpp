@@ -379,7 +379,7 @@ namespace gradc {
         return axis;
     }
 
-    inline size_t calculate_dim_product(std::vector<size_t> shape) {
+    inline size_t calculate_dim_product(const std::vector<size_t>& shape) {
         size_t dim_product = 1;
         for (size_t i = 0; i < shape.size(); ++i) {
             dim_product *= shape[i];
@@ -389,7 +389,7 @@ namespace gradc {
     }
 
 
-    inline ReductionMetadata infer_reduction_metadata(std::vector<size_t>& source_shape, std::vector<int64_t>& red_axes) {
+    inline ReductionMetadata infer_reduction_metadata(const std::vector<size_t>& source_shape, const std::vector<int64_t>& red_axes, bool keepdims) {
         const int64_t n_dim = static_cast<int64_t>(source_shape.size());
         std::vector<int64_t> positive_red_axes;
         positive_red_axes.reserve(n_dim);
@@ -401,13 +401,18 @@ namespace gradc {
         std::vector<size_t> temp_strides = std::vector<size_t>(n_dim);
         std::vector<size_t> result_shape;
         std::vector<size_t> result_strides;
+        size_t result_vol = 1;
+        size_t reduced_vol = 1;
 
         // first calculate output shape. Then calculate temporary values that allow operations
         for (const size_t ax : positive_red_axes) {
+            result_vol *= temp_shape[ax];
             temp_shape[ax] = 1; // later just copy temp as result_shape and retain/remove axes
         }
 
         result_shape = temp_shape;
+        result_vol = calculate_dim_product(result_shape);
+        
 
         temp_strides[n_dim - 1] = 1;
         for (int64_t i = n_dim - 1; i > 0; --i) {
@@ -420,7 +425,60 @@ namespace gradc {
             temp_strides[ax] = 0;
         }
 
-        return ReductionMetadata(temp_shape, temp_strides, result_shape, result_strides);
+        if (!keepdims) {
+            std::vector<bool> axes_to_keep = std::vector<bool>(n_dim, true);
+            size_t new_size = n_dim;
+
+            for (const size_t ax : positive_red_axes) {
+                axes_to_keep[ax] = false;
+                --new_size;
+            }
+
+            std::vector<size_t> collapsed_result_shape = std::vector<size_t>{};
+            std::vector<size_t> collapsed_result_strides = std::vector<size_t>{};
+            collapsed_result_shape.reserve(new_size);
+            collapsed_result_strides.reserve(new_size);
+
+            for (size_t i = 0; i < n_dim; ++i) {
+                if (axes_to_keep[i]) {
+                    collapsed_result_shape.push_back(result_shape[i]);
+                    collapsed_result_strides.push_back(result_strides[i]);
+                }
+            }
+            return ReductionMetadata(temp_shape, temp_strides, collapsed_result_shape, collapsed_result_strides, result_vol, reduced_vol);
+        }
+
+        else {
+            return ReductionMetadata(temp_shape, temp_strides, result_shape, result_strides, result_vol, reduced_vol);
+        }
+        
+    }
+
+    template <typename T, typename Func>
+    inline Tensor<T> apply_reduction_operation(const Tensor<T>& source, const ReductionMetadata& reduction_metadata, T init_value, Func op) {
+        const int64_t n_dim = static_cast<int64_t>(source.m_shape.size());
+        Tensor<T> result = Tensor<T>(reduction_metadata.result_shape, init_value);
+
+        std::vector<size_t> odometer(n_dim, 0);
+        while (odometer[0] < source.m_shape[0]) {
+            size_t in_strided_idx = source.m_offset; 
+            size_t out_strided_idx = 0;
+
+            for (size_t i = 0; i < n_dim; ++i) {
+                in_strided_idx += odometer[i] * source.m_strides[i];
+                out_strided_idx += odometer[i] * reduction_metadata.temp_strides[i];
+            }
+            (result.m_state->m_storage->m_data)[out_strided_idx] = op((result.m_state->m_storage->m_data)[out_strided_idx], (source.m_state->m_storage->m_data)[in_strided_idx]);
+            ++odometer[n_dim - 1];
+            size_t i = n_dim - 1;
+            while ((odometer[i] == source.m_shape[i]) && i > 0) {
+                odometer[i] = 0;
+                ++odometer[i - 1];
+                --i;
+            }
+        }
+
+        return result;
     }
 
 

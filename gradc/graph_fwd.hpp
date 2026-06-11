@@ -11,4 +11,5 @@ namespace gradc {
     template <typename T> class ReshapeNode;
     template <typename T> class PermuteNode;
     template <typename T> class SliceNode;
+    template <typename T> class SumNode;
 }

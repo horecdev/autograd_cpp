@@ -123,7 +123,7 @@ namespace gradc {
             return result;
         }
         else {
-            Tensor contiguous_tensor = this->contiguous(); // has right metadata and storage (lazy node)
+            Tensor contiguous_tensor = this->contiguous();
             Tensor result = Tensor(std::move(new_shape), std::move(new_strides), 0, contiguous_tensor.m_state->m_storage, m_requires_grad);
             result.m_state->m_realize_op = std::make_unique<ReshapeNode<T>>(std::move(contiguous_tensor));
             return result;
