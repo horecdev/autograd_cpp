@@ -54,6 +54,25 @@ namespace gradc {
         std::is_same_v<T, double> ||
         std::is_same_v<T, bool>;
 
+    enum class DType {
+        Float32,
+        Float64,
+        Int32,
+        Int64,
+        Bool,
+        Unknown
+    };
+
+    template <typename T>
+    constexpr DType type_to_dtype() { // before signature: allows the compiler to figure out at compilation
+        if constexpr (std::is_same_v<T, float>) return DType::Float32; // before if statement: deletes the line if false, keeps if true
+        else if constexpr (std::is_same_v<T, double>) return DType::Float64;
+        else if constexpr (std::is_same_v<T, int32_t>) return DType::Int32;
+        else if constexpr (std::is_same_v<T, int64_t>) return DType::Int64;
+        else if constexpr (std::is_same_v<T, bool>) return DType::Bool;
+        else return DType::Unknown;
+    }
+
     template <typename T>
     struct Storage{
         std::vector<T> m_data;
@@ -161,6 +180,10 @@ namespace gradc {
                 return m_requires_grad;
             }
 
+            DType dtype() const {
+                return type_to_dtype<T>();
+            }
+
             const auto get_realize_op_ptr_type() const {
                 if (m_state->m_realize_op == nullptr) {
                     return "nullptr";
@@ -209,7 +232,8 @@ namespace gradc {
             // REDUCTIONS
 
             Tensor sum(const std::vector<int64_t>& axes, bool keepdims) const;
-            Tensor mean(const std::vector<int64_t>& axes, bool keepdims) const;
+            template <typename OutT = std::conditional<std::is_integral_v<T>, float, T>> // if int: float. Otherwise T.
+            Tensor<OutT> mean(const std::vector<int64_t>& axes, bool keepdims) const;
 
             // UTILS
             template <typename U> friend Tensor<U> lobotomized_broadcast(const Tensor<U>& source, const std::vector<size_t>& target_shape);
