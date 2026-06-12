@@ -12,7 +12,7 @@
 
 namespace gradc {
     template <typename T, typename U>
-    Tensor<std::common_type<T, U>> operator+(Tensor<T> left, Tensor<U> right) {
+    Tensor<std::common_type_t<T, U>> operator+(Tensor<T> left, Tensor<U> right) {
         auto [p_left, p_right] = promote_to_common(std::move(left), std::move(right));
 
         std::vector<size_t> target_shape;
@@ -30,7 +30,19 @@ namespace gradc {
     }
 
     template <typename T, typename U>
-    Tensor<std::common_type<T, U>> operator*(Tensor<T> left, Tensor<U> right) {
+    requires std::is_arithmetic_v<U>
+    auto operator+(Tensor<T> left, U right_val) { // Tensor + scalar
+        return std::move(left) + Tensor<U>(right_val);
+    }
+
+    template <typename T, typename U>
+    requires std::is_arithmetic_v<U>
+    auto operator+(T right_val, Tensor<U> left) { // scalar + Tensor
+        return Tensor<T>(right_val) + std::move(left);
+    }
+
+    template <typename T, typename U>
+    Tensor<std::common_type_t<T, U>> operator*(Tensor<T> left, Tensor<U> right) {
         auto [p_left, p_right] = promote_to_common(std::move(left), std::move(right));
 
         std::vector<size_t> target_shape;
@@ -48,13 +60,24 @@ namespace gradc {
     }
 
     template <typename T, typename U>
+    requires std::is_arithmetic_v<U>
+    auto operator*(Tensor<T> left, U right_val) { // Tensor + scalar
+        return std::move(left) * Tensor<U>(right_val);
+    }
+
+    template <typename T, typename U>
+    requires std::is_arithmetic_v<U>
+    auto operator*(T right_val, Tensor<U> left) { // scalar + Tensor
+        return Tensor<T>(right_val) * std::move(left);
+    }
+
+    template <typename T, typename U>
     Tensor<T>& operator+=(Tensor<T>& main, Tensor<U> other) {
-        using PromotedT = std::common_type<T, U>;
+        using PromotedT = std::common_type_t<T, U>;
         Tensor<PromotedT> p_other;
 
-        if constexpr (!std::is_same_v<T, PromotedT>) {
-            throw std::runtime_error("Cannot promote type of main tensor during in-place operation.");
-        }
+        static_assert(std::is_same_v<T, PromotedT>, "FATAL: Cannot promote type of main tensor during in-place operation.");
+
         if constexpr (!std::is_same_v<U, PromotedT>) {
             p_other = other.template cast<PromotedT>();
         }
@@ -80,13 +103,18 @@ namespace gradc {
     }
 
     template <typename T, typename U>
+    requires std::is_arithmetic_v<U>
+    Tensor<T>& operator+=(Tensor<T>& main, U other_val) {
+        return main += Tensor<U>(other_val);
+    }
+
+    template <typename T, typename U>
     Tensor<T>& operator*=(Tensor<T>& main, Tensor<U> other) {
-        using PromotedT = std::common_type<T, U>;
+        using PromotedT = std::common_type_t<T, U>;
         Tensor<PromotedT> p_other;
 
-        if constexpr (!std::is_same_v<T, PromotedT>) {
-            throw std::runtime_error("Cannot promote type of main tensor during in-place operation.");
-        }
+        static_assert(std::is_same_v<T, PromotedT>, "FATAL: Cannot promote type of main tensor during in-place operation.");
+        
         if constexpr (!std::is_same_v<U, PromotedT>) {
             p_other = other.template cast<PromotedT>();
         }
@@ -109,5 +137,11 @@ namespace gradc {
         main.m_state->m_realize_op = std::make_unique<InPlaceMulNode<T>>(std::move(old_main), std::move(p_other));
         main.m_requires_grad = main.m_requires_grad || p_other.m_requires_grad;
         return main;
+    }
+
+    template <typename T, typename U>
+    requires std::is_arithmetic_v<U>
+    Tensor<T>& operator*=(Tensor<T>& main, U other_val) {
+        return main *= Tensor<U>(other_val);
     }
 }

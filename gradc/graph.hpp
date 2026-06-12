@@ -97,7 +97,7 @@ namespace gradc {
             Tensor<T> realize() override {
                 m_parent.realize();
                 Tensor<T> summed = apply_reduction_operation(m_parent, m_reduction_metadata, T(), [](T a, T b){return a + b;});
-                apply_in_place(summed, Tensor<T>(m_reduction_metadata.reduced_vol), [](T& a, T b){a /= b;});
+                apply_in_place(summed, Tensor<T>(static_cast<T>(m_reduction_metadata.reduced_vol)), [](T& a, T b){a /= b;});
                 return summed;
             }
     };

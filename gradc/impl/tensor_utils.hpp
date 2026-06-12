@@ -485,7 +485,7 @@ namespace gradc {
     auto promote_to_common(Tensor<T> left, Tensor<U> right) {
         // .template is a promise to the compiler that cast is a template (it doesnt know what T is during first read, 
         // and since its dependent - inside Tensor class, not on its own - it assumes its a variable by default. .template forces it to look at it as a template.)
-        using PromotedT = std::common_type<T, U>;
+        using PromotedT = std::common_type_t<T, U>;
 
         Tensor<PromotedT> p_left;
         Tensor<PromotedT> p_right;
