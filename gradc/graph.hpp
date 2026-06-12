@@ -180,4 +180,23 @@ namespace gradc {
                 return m_parent;
             }
     };
+
+    template <typename InT, typename OutT>
+    class CastNode : public Node<OutT> {
+        private: 
+            Tensor<InT> m_parent;
+        public:
+            CastNode(Tensor<InT> parent) : m_parent(std::move(parent)) {}
+
+            Tensor<OutT> realize() {
+                m_parent.realize();
+                Tensor<OutT> result = Tensor<OutT>(m_parent.m_shape);
+                for (size_t i = 0; i < m_parent.volume(); ++i) {
+                    (result.m_state->m_storage->m_data)[i] = (result.m_state->m_storage->m_data)[i];
+                }
+
+                return result;
+            }
+
+    };
 }

@@ -6,48 +6,53 @@
 
 #include <memory>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 namespace gradc {
-    template <typename T>
-    Tensor<T> operator+(Tensor<T> left, Tensor<T> right) {
+    template <typename T, typename U>
+    Tensor<std::common_type<T, U>> operator+(Tensor<T> left, Tensor<U> right) {
+        auto [p_left, p_right] = promote_to_common(std::move(left), std::move(right));
+
         std::vector<size_t> target_shape;
-        if (left.m_shape != right.m_shape) {
-            target_shape = infer_broadcast(left.m_shape, right.m_shape); // crashes if incompatible on the graph-building stage.
+        if (p_left.m_shape != p_right.m_shape) {
+            target_shape = infer_broadcast(p_left.m_shape, p_right.m_shape); // crashes if incompatible on the graph-building stage.
         }
         else {
-            target_shape = left.m_shape;
+            target_shape = p_left.m_shape;
         }
 
-        bool requires_grad = left.m_requires_grad || right.m_requires_grad;
+        bool requires_grad = p_left.m_requires_grad || p_right.m_requires_grad;
         Tensor<T> new_tensor = Tensor<T>(target_shape, requires_grad, lazy);
-        new_tensor.m_state->m_realize_op = std::make_unique<AddNode<T>>(std::move(left), std::move(right), std::move(target_shape));
+        new_tensor.m_state->m_realize_op = std::make_unique<AddNode<T>>(std::move(p_left), std::move(p_right), std::move(target_shape));
         return new_tensor;
     }
 
-    template <typename T>
-    Tensor<T> operator*(Tensor<T> left, Tensor<T> right) {
+    template <typename T, typename U>
+    Tensor<std::common_type<T, U>> operator*(Tensor<T> left, Tensor<U> right) {
+        auto [p_left, p_right] = promote_to_common(std::move(left), std::move(right));
+
         std::vector<size_t> target_shape;
-        if (left.m_shape != right.m_shape) {
-            target_shape = infer_broadcast(left.m_shape, right.m_shape); // crashes if incompatible on the graph-building stage.
+        if (p_left.m_shape != p_right.m_shape) {
+            target_shape = infer_broadcast(p_left.m_shape, p_right.m_shape); // crashes if incompatible on the graph-building stage.
         }
         else {
-            target_shape = left.m_shape;
+            target_shape = p_left.m_shape;
         }
 
-        bool requires_grad = left.m_requires_grad || right.m_requires_grad;
+        bool requires_grad = p_left.m_requires_grad || p_right.m_requires_grad;
         Tensor<T> new_tensor = Tensor<T>(target_shape, requires_grad, lazy);
-        new_tensor.m_state->m_realize_op = std::make_unique<MulNode<T>>(std::move(left), std::move(right), std::move(target_shape));
+        new_tensor.m_state->m_realize_op = std::make_unique<MulNode<T>>(std::move(p_left), std::move(p_right), std::move(target_shape));
         return new_tensor;
     }
 
-    template <typename T>
-    Tensor<T>& operator+=(Tensor<T>& main, Tensor<T> other) {
+    template <typename T, typename U>
+    Tensor<T>& operator+=(Tensor<T>& main, Tensor<U> other) {
         if (main.m_requires_grad && main.m_state->m_realize_op == nullptr) {
             throw std::runtime_error("Cannot mutate leaf tensor that requires gradients in-place.");
         }
-
+        using PromotedT = std::common_type<T, U>;
         std::vector<size_t> common_shape;
         if (main.m_shape != other.m_shape) { // Validates on the graph building
             if (!can_broadcast(other.m_shape, main.m_shape)) {

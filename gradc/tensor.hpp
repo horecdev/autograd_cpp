@@ -45,7 +45,14 @@ namespace gradc {
     template <typename T>
     class Node;
 
-
+    template <typename T>
+    constexpr bool is_supported_tensor_type_v = 
+        std::is_same_v<T, int16_t> ||
+        std::is_same_v<T, int32_t> ||
+        std::is_same_v<T, int64_t> ||
+        std::is_same_v<T, float> ||
+        std::is_same_v<T, double> ||
+        std::is_same_v<T, bool>;
 
     template <typename T>
     struct Storage{
@@ -96,6 +103,7 @@ namespace gradc {
 
     template <typename T>
     class Tensor {
+        static_assert(is_supported_tensor_type_v<T>, "FATAL: Attempted creating a Tensor with unsupported data type.");
         private:
             std::vector<size_t> m_shape;
             std::vector<size_t> m_strides;
@@ -160,6 +168,17 @@ namespace gradc {
                 return typeid(*m_state->m_realize_op).name();
             }
 
+            size_t volume() const {
+                size_t vol = 1;
+                if (m_shape.size() == 0) {
+                    return 1;
+                }
+                for (size_t i = 0; i < m_shape.size(); ++i) {
+                    vol *= m_shape[i];
+                }
+                return vol;
+            }
+
             // SETTERS
             void set_data(std::vector<T> data) {
                 this->m_state->m_storage->m_data = data; // copy vector
@@ -198,6 +217,8 @@ namespace gradc {
 
             template <typename U> friend std::ostream& print_tensor(std::ostream& stream, const Tensor<U>& source, PrintOptions opts);
             template <typename U> friend void print_dim(std::ostream& stream, const Tensor<U>& source, const PrintOptions& opts, size_t current_dim, size_t base_offset, bool is_last);
+
+            template <typename TargetT> Tensor<TargetT> cast() const;
             friend int main();
     };      
 } 

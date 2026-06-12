@@ -12,4 +12,6 @@ namespace gradc {
     template <typename T> class PermuteNode;
     template <typename T> class SliceNode;
     template <typename T> class SumNode;
+    template <typename T> class MeanNode;
+    template <typename InT, typename OutT> class CastNode;
 }

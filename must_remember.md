@@ -1,0 +1,2 @@
+1) You dont take by const reference& in operator+ since you would have to copy rvalues (say (a + b) * c), you cannot just take its data. You have to copy.
+2) Tensors can share Storage, Storage AND m_op (alias) but never just m_op (makes zero sense)
