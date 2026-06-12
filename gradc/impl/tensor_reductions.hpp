@@ -4,14 +4,14 @@
 
 namespace gradc {
     template <typename T>
-    Tensor<T> Tensor<T>::sum(std::vector<int64_t>& red_axes, bool keepdims) const {
+    Tensor<T> Tensor<T>::sum(const std::vector<int64_t>& red_axes, bool keepdims) const {
         ReductionMetadata reduction_metadata = infer_reduction_metadata(m_shape, red_axes, keepdims);
         Tensor result = Tensor(reduction_metadata.result_shape, m_requires_grad, lazy);
         result.m_state->m_realize_op = std::make_unique<SumNode<T>>(*this, reduction_metadata);
     }
 
     template <typename T>
-    Tensor<T> Tensor<T>::mean(std::vector<int64_t>& red_axes, bool keepdims) const {
+    Tensor<T> Tensor<T>::mean(const std::vector<int64_t>& red_axes, bool keepdims) const {
         ReductionMetadata reduction_metadata = infer_reduction_metadata(m_shape, red_axes, keepdims);
         Tensor result = Tensor(reduction_metadata.result_shape, m_requires_grad, lazy);
         result.m_state->m_realize_op = std::make_unique<MeanNode<T>>(*this, reduction_metadata);

@@ -208,8 +208,8 @@ namespace gradc {
 
             // REDUCTIONS
 
-            Tensor sum(std::vector<int64_t>& axes, bool keepdims) const;
-            Tensor mean(std::vector<int64_t>& axes, bool keepdims) const;
+            Tensor sum(const std::vector<int64_t>& axes, bool keepdims) const;
+            Tensor mean(const std::vector<int64_t>& axes, bool keepdims) const;
 
             // UTILS
             template <typename U> friend Tensor<U> lobotomized_broadcast(const Tensor<U>& source, const std::vector<size_t>& target_shape);
