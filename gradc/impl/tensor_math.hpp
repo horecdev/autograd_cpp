@@ -49,30 +49,55 @@ namespace gradc {
 
     template <typename T, typename U>
     Tensor<T>& operator+=(Tensor<T>& main, Tensor<U> other) {
+        using PromotedT = std::common_type<T, U>;
+        Tensor<PromotedT> p_other;
+
+        if constexpr (!std::is_same_v<T, PromotedT>) {
+            throw std::runtime_error("Cannot promote type of main tensor during in-place operation.");
+        }
+        if constexpr (!std::is_same_v<U, PromotedT>) {
+            p_other = other.template cast<PromotedT>();
+        }
+        else {
+            p_other = std::move(other);
+        }
+
         if (main.m_requires_grad && main.m_state->m_realize_op == nullptr) {
             throw std::runtime_error("Cannot mutate leaf tensor that requires gradients in-place.");
         }
-        using PromotedT = std::common_type<T, U>;
-        std::vector<size_t> common_shape;
-        if (main.m_shape != other.m_shape) { // Validates on the graph building
+
+        if (main.m_shape != p_other.m_shape) { // Validates on the graph building
             if (!can_broadcast(other.m_shape, main.m_shape)) {
                 throw std::runtime_error("Could not broadcast RHS to match LHS during in-place operation.");
             }
         }
+
         std::shared_ptr<TensorState<T>> old_tensor_state = std::make_shared<TensorState<T>>(main.m_state->m_storage, std::move(main.m_state->m_realize_op));
         Tensor<T> old_main = Tensor<T>(main.m_shape, main.m_strides, main.m_offset, std::move(old_tensor_state), main.m_requires_grad);
-        main.m_state->m_realize_op = std::make_unique<InPlaceAddNode<T>>(std::move(old_main), std::move(other));
-        main.m_requires_grad = main.m_requires_grad || other.m_requires_grad;
+        main.m_state->m_realize_op = std::make_unique<InPlaceAddNode<T>>(std::move(old_main), std::move(p_other));
+        main.m_requires_grad = main.m_requires_grad || p_other.m_requires_grad;
         return main;
     }
 
-    template <typename T>
-    Tensor<T>& operator*=(Tensor<T>& main, Tensor<T> other) {
+    template <typename T, typename U>
+    Tensor<T>& operator*=(Tensor<T>& main, Tensor<U> other) {
+        using PromotedT = std::common_type<T, U>;
+        Tensor<PromotedT> p_other;
+
+        if constexpr (!std::is_same_v<T, PromotedT>) {
+            throw std::runtime_error("Cannot promote type of main tensor during in-place operation.");
+        }
+        if constexpr (!std::is_same_v<U, PromotedT>) {
+            p_other = other.template cast<PromotedT>();
+        }
+        else {
+            p_other = std::move(other);
+        }
+
         if (main.m_requires_grad && main.m_state->m_realize_op == nullptr) { // we are using toposort to get rid of temporary results using leaf nodes as a stop-point, and in-place math literally moves it inside the graph.
             throw std::runtime_error("Cannot mutate leaf tensor that requires gradients in-place.");
         }
 
-        std::vector<size_t> common_shape;
         if (main.m_shape != other.m_shape) { // Validates on the graph building
             if (!can_broadcast(other.m_shape, main.m_shape)) {
                 throw std::runtime_error("Could not broadcast RHS to match LHS during in-place operation.");
@@ -81,8 +106,8 @@ namespace gradc {
         
         std::shared_ptr<TensorState<T>> old_tensor_state = std::make_shared<TensorState<T>>(main.m_state->m_storage, std::move(main.m_state->m_realize_op));
         Tensor<T> old_main = Tensor<T>(main.m_shape, main.m_strides, main.m_offset, std::move(old_tensor_state), main.m_requires_grad);
-        main.m_state->m_realize_op = std::make_unique<InPlaceMulNode<T>>(std::move(old_main), std::move(other));
-        main.m_requires_grad = main.m_requires_grad || other.m_requires_grad;
+        main.m_state->m_realize_op = std::make_unique<InPlaceMulNode<T>>(std::move(old_main), std::move(p_other));
+        main.m_requires_grad = main.m_requires_grad || p_other.m_requires_grad;
         return main;
     }
 }
