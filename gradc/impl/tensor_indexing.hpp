@@ -16,16 +16,16 @@ namespace gradc {
     template <typename T>
     template <typename... Args> // ... attached to typename means: create a bucket of types and name it Args.
     Tensor<T> Tensor<T>::operator[](Args... args) const { // ... next to the type bucket, before args: Look element-wise at both. Put type inside type bucket, argument inside args.
-        // The compiler sees you passed x: short, y: int, z: size_t, and automatically creates a template (short var_0, int var_1, size_t var_2)
+        // The compiler sees you passed x: short, y: int, z: int64_t, and automatically creates a template (short var_0, int var_1, int64_t var_2)
         // For class templates: pass <float> etc. For funcion/operator templates you dont have to.
-        if (sizeof...(args) != m_shape.size()) { // sizeof... literally means "count elements in the bucket". Its a built-in token.
+        if (sizeof...(args) != std::ssize(m_shape)) { // sizeof... literally means "count elements in the bucket". Its a built-in token.
             throw std::out_of_range("Coordinate count does not match tensor dimensions.");
         }
 
         std::array<IndexDesc, sizeof...(args)> descriptors = {IndexDesc(args)...}; // when you do [expression(args)...] it means: apply expression to every arg, and separate it with comas.
-        std::vector<size_t> new_shape;
-        std::vector<size_t> new_strides;
-        size_t new_offset = m_offset;
+        std::vector<int64_t> new_shape;
+        std::vector<int64_t> new_strides;
+        int64_t new_offset = m_offset;
         new_shape.reserve(sizeof...(args)); // max amount of elements reserved upfront (evades dynamic reallocations)
         new_strides.reserve(sizeof...(args));
         for (int i = 0; i < sizeof...(args); ++i) {
@@ -35,8 +35,8 @@ namespace gradc {
             }
             else {
                 int64_t coord = descriptors[i].m_value;
-                coord = normalize_axis(coord, static_cast<int64_t>(m_shape[i]));
-                new_offset += static_cast<size_t>(coord) * m_strides[i];
+                coord = normalize_axis(coord, m_shape[i]);
+                new_offset += coord * m_strides[i];
             }
         }
         Tensor<T> result = Tensor(std::move(new_shape), std::move(new_strides), new_offset, m_state->m_storage, m_requires_grad);
@@ -46,7 +46,7 @@ namespace gradc {
 
     template <typename T>
     T Tensor<T>::item() const {
-        if (m_shape.size() == 0) {
+        if (std::ssize(m_shape) == 0) {
             if (m_state->m_storage->m_data.empty()) {
                 throw std::runtime_error("Called .item() on a tensor without data.");
             }

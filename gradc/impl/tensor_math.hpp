@@ -17,7 +17,7 @@ namespace gradc {
 
         auto [p_left, p_right] = promote_to_common(std::move(left), std::move(right));
 
-        std::vector<size_t> target_shape;
+        std::vector<int64_t> target_shape;
         if (p_left.m_shape != p_right.m_shape) {
             target_shape = infer_broadcast(p_left.m_shape, p_right.m_shape); // crashes if incompatible on the graph-building stage.
         }
@@ -49,7 +49,7 @@ namespace gradc {
 
         auto [p_left, p_right] = promote_to_common(std::move(left), std::move(right));
 
-        std::vector<size_t> target_shape;
+        std::vector<int64_t> target_shape;
         if (p_left.m_shape != p_right.m_shape) {
             target_shape = infer_broadcast(p_left.m_shape, p_right.m_shape); // crashes if incompatible on the graph-building stage.
         }

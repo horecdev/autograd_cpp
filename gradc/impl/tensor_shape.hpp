@@ -15,10 +15,10 @@ namespace gradc {
     template <typename T>
     bool Tensor<T>::is_contiguous() const {
         if (m_shape.empty()) return true;
-        if (m_strides[m_strides.size() - 1] != 1) {
+        if (m_strides[std::ssize(m_strides) - 1] != 1) {
             return false;
         }
-        for (size_t i = m_shape.size() - 1; i > 0; --i) {
+        for (int64_t i = std::ssize(m_shape) - 1; i > 0; --i) {
             if (m_strides[i - 1] != m_shape[i] * m_strides[i]) {
                 return false;
             }
@@ -36,12 +36,12 @@ namespace gradc {
 
     template <typename T>
     Tensor<T> Tensor<T>::transpose(int64_t dim0, int64_t dim1) const {
-        const int64_t n_dim = static_cast<int64_t>(m_shape.size());
+        const int64_t n_dim = std::ssize(m_shape);
         dim0 = normalize_axis(dim0, n_dim);
         dim1 = normalize_axis(dim1, n_dim);
 
-        std::vector<size_t> new_shape = m_shape;
-        std::vector<size_t> new_strides = m_strides;
+        std::vector<int64_t> new_shape = m_shape;
+        std::vector<int64_t> new_strides = m_strides;
         std::swap(new_shape[dim0], new_shape[dim1]);
         std::swap(new_strides[dim0], new_strides[dim1]);
 
@@ -52,14 +52,14 @@ namespace gradc {
 
     template <typename T>
     Tensor<T> Tensor<T>::permute(const std::vector<int64_t>& axes) const {
-        const int64_t n_dim = static_cast<int64_t>(m_shape.size());
-        if (axes.size() != n_dim) {
+        const int64_t n_dim = std::ssize(m_shape);
+        if (std::ssize(axes) != n_dim) {
             throw std::runtime_error("permute() axes list size must match shape list size.");
         }
-        std::vector<size_t> new_shape = std::vector<size_t>(n_dim);
-        std::vector<size_t> new_strides = std::vector<size_t>(n_dim);
+        std::vector<int64_t> new_shape = std::vector<int64_t>(n_dim);
+        std::vector<int64_t> new_strides = std::vector<int64_t>(n_dim);
         std::vector<bool> seen_axes = std::vector<bool>(n_dim, false);
-        for (size_t target_ax = 0; target_ax < n_dim; ++target_ax) {
+        for (int64_t target_ax = 0; target_ax < n_dim; ++target_ax) {
             int64_t src_ax = axes[target_ax];
             src_ax = normalize_axis(src_ax, n_dim);
             if (seen_axes[src_ax]) {
@@ -77,17 +77,17 @@ namespace gradc {
 
     template <typename T>
     Tensor<T> Tensor<T>::reshape(const std::vector<int64_t>& target_shape) const {
-        std::vector<size_t> new_shape = std::vector<size_t>(target_shape.size());
-        std::vector<size_t> new_strides = std::vector<size_t>(target_shape.size());
-        size_t total_volume = 1;
-        size_t running_volume = 1;
+        std::vector<int64_t> new_shape = std::vector<int64_t>(std::ssize(target_shape));
+        std::vector<int64_t> new_strides = std::vector<int64_t>(std::ssize(target_shape));
+        int64_t total_volume = 1;
+        int64_t running_volume = 1;
         int64_t neg_one_idx = -1;
 
-        for (size_t i = 0; i < m_shape.size(); ++i) {
+        for (int64_t i = 0; i < std::ssize(m_shape); ++i) {
             total_volume *= m_shape[i];
         }
         
-        for (size_t i = 0; i < target_shape.size(); ++i) {
+        for (int64_t i = 0; i < std::ssize(target_shape); ++i) {
             if (target_shape[i] == -1 && neg_one_idx == -1) {
                 neg_one_idx = i;
             }
@@ -100,7 +100,7 @@ namespace gradc {
             }
         }
 
-        size_t unknown_dim;
+        int64_t unknown_dim;
         if (total_volume % running_volume != 0) {
             throw std::runtime_error("Invalid reshape parameters.");
         }
@@ -112,8 +112,8 @@ namespace gradc {
             new_shape[neg_one_idx] = unknown_dim;
         }
 
-        new_strides[target_shape.size() - 1] = 1;
-        for (size_t i = target_shape.size() - 1; i > 0; --i) {
+        new_strides[std::ssize(target_shape) - 1] = 1;
+        for (int64_t i = std::ssize(target_shape) - 1; i > 0; --i) {
             new_strides[i - 1] = new_shape[i] * new_strides[i];
         }
 

@@ -13,9 +13,9 @@ namespace gradc {
         private:
             Tensor<T> m_left;
             Tensor<T> m_right;
-            std::vector<size_t> m_target_shape;
+            std::vector<int64_t> m_target_shape;
         public:
-            AddNode<T>(Tensor<T> left, Tensor<T> right, std::vector<size_t> target_shape) : m_left(std::move(left)), m_right(std::move(right)), m_target_shape(std::move(target_shape)) {}
+            AddNode<T>(Tensor<T> left, Tensor<T> right, std::vector<int64_t> target_shape) : m_left(std::move(left)), m_right(std::move(right)), m_target_shape(std::move(target_shape)) {}
             
             Tensor<T> realize() override {
                 m_left.realize();
@@ -29,9 +29,9 @@ namespace gradc {
         private:
             Tensor<T> m_left;
             Tensor<T> m_right;
-            std::vector<size_t> m_target_shape;
+            std::vector<int64_t> m_target_shape;
         public:
-            MulNode<T>(Tensor<T> left, Tensor<T> right, std::vector<size_t> target_shape) : m_left(std::move(left)), m_right(std::move(right)), m_target_shape(std::move(target_shape)) {}
+            MulNode<T>(Tensor<T> left, Tensor<T> right, std::vector<int64_t> target_shape) : m_left(std::move(left)), m_right(std::move(right)), m_target_shape(std::move(target_shape)) {}
             
             Tensor<T> realize() override {
                 m_left.realize();
@@ -192,8 +192,8 @@ namespace gradc {
                 m_parent.realize();
                 Tensor<OutT> result = Tensor<OutT>(m_parent.shape());
                 std::shared_ptr<TensorState<InT>> parent_state = this->get_state(m_parent);
-                for (size_t i = 0; i < m_parent.volume(); ++i) {
-                    (parent_state->m_storage->m_data)[i] = (parent_state->m_storage->m_data)[i];
+                for (int64_t i = 0; i < m_parent.volume(); ++i) {
+                    (result.m_state->m_storage->m_data)[i] = (parent_state->m_storage->m_data)[i];
                 }
 
                 return result;

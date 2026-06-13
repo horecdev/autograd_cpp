@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 namespace gradc {
     template <typename T>
     struct TensorState;

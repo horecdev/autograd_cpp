@@ -34,12 +34,12 @@ namespace gradc {
     struct PrintOptions;
 
     struct ReductionMetadata{
-        std::vector<size_t> temp_shape;
-        std::vector<size_t> temp_strides;
-        std::vector<size_t> result_shape;
-        std::vector<size_t> result_strides;
-        size_t result_vol;
-        size_t reduced_vol;
+        std::vector<int64_t> temp_shape;
+        std::vector<int64_t> temp_strides;
+        std::vector<int64_t> result_shape;
+        std::vector<int64_t> result_strides;
+        int64_t result_vol;
+        int64_t reduced_vol;
     };
 
     template <typename T>
@@ -76,7 +76,7 @@ namespace gradc {
     template <typename T>
     struct Storage{
         std::vector<T> m_data;
-        size_t m_version;
+        int64_t m_version;
 
         Storage() : m_data(std::vector<T>{}), m_version(0) {}
 
@@ -128,9 +128,9 @@ namespace gradc {
         template <typename U> friend class Node;
 
         private:
-            std::vector<size_t> m_shape;
-            std::vector<size_t> m_strides;
-            size_t m_offset;
+            std::vector<int64_t> m_shape;
+            std::vector<int64_t> m_strides;
+            int64_t m_offset;
             std::shared_ptr<TensorState<T>> m_state;
             bool m_requires_grad;
 
@@ -149,10 +149,10 @@ namespace gradc {
             // LIFECYCLE 
             Tensor();
             explicit Tensor(T value);
-            explicit Tensor(std::vector<size_t> shape, T init_val = T());
-            Tensor(std::vector<size_t> shape, bool requires_grad, LazyTag);
-            Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<Storage<T>> storage, bool requires_grad);
-            Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<TensorState<T>> state, bool requires_grad);
+            explicit Tensor(std::vector<int64_t> shape, T init_val = T());
+            Tensor(std::vector<int64_t> shape, bool requires_grad, LazyTag);
+            Tensor(std::vector<int64_t> shape, std::vector<int64_t> strides, int64_t offset, std::shared_ptr<Storage<T>> storage, bool requires_grad);
+            Tensor(std::vector<int64_t> shape, std::vector<int64_t> strides, int64_t offset, std::shared_ptr<TensorState<T>> state, bool requires_grad);
             ~Tensor();
             Tensor(const Tensor& source);
             Tensor(Tensor&& source);
@@ -168,11 +168,11 @@ namespace gradc {
 
             // GETTERS
 
-            const std::vector<size_t>& shape() const {return m_shape;}
+            const std::vector<int64_t>& shape() const {return m_shape;}
 
-            const std::vector<size_t>& strides() const {return m_strides;}
+            const std::vector<int64_t>& strides() const {return m_strides;}
 
-            const std::size_t offset() const {return m_offset;}
+            const int64_t offset() const {return m_offset;}
 
             const bool requires_grad() const {return m_requires_grad;}
 
@@ -185,13 +185,10 @@ namespace gradc {
                 return typeid(*m_state->m_realize_op).name();
             }
 
-            size_t volume() const {
-                size_t vol = 1;
-                if (m_shape.size() == 0) {
-                    return 1;
-                }
-                for (size_t i = 0; i < m_shape.size(); ++i) {
-                    vol *= m_shape[i];
+            int64_t volume() const {
+                int64_t vol = 1;
+                for (int64_t dim : m_shape) {
+                    vol *= dim;
                 }
                 return vol;
             }
@@ -214,7 +211,7 @@ namespace gradc {
 
             // MATH
             template <typename U, typename Func> friend void apply_in_place(Tensor<U>& left, const Tensor<U>& right, Func op);
-            template <typename U, typename Func> friend Tensor<U> apply_out_of_place(const Tensor<U>& left, const Tensor<U>& right, const std::vector<size_t>& target_shape, Func op);
+            template <typename U, typename Func> friend Tensor<U> apply_out_of_place(const Tensor<U>& left, const Tensor<U>& right, const std::vector<int64_t>& target_shape, Func op);
             template <typename U, typename Func> friend Tensor<U> apply_reduction_operation(const Tensor<U>& source, const ReductionMetadata& reduction_metadata, U init_value, Func op);
 
             template <typename U, typename W> friend auto operator+(Tensor<U> left, Tensor<W> right); // we befriend whole family of functions named operator+. 
@@ -230,11 +227,11 @@ namespace gradc {
             Tensor<OutT> mean(const std::vector<int64_t>& axes, bool keepdims) const;
 
             // UTILS
-            template <typename U> friend Tensor<U> lobotomized_broadcast(const Tensor<U>& source, const std::vector<size_t>& target_shape);
+            template <typename U> friend Tensor<U> lobotomized_broadcast(const Tensor<U>& source, const std::vector<int64_t>& target_shape);
             template <typename U> friend Tensor<U> lobotomized_contiguous(const Tensor<U>& source);
 
             template <typename U> friend std::ostream& print_tensor(std::ostream& stream, const Tensor<U>& source, PrintOptions opts);
-            template <typename U> friend void print_dim(std::ostream& stream, const Tensor<U>& source, const PrintOptions& opts, size_t current_dim, size_t base_offset, bool is_last);
+            template <typename U> friend void print_dim(std::ostream& stream, const Tensor<U>& source, const PrintOptions& opts, int64_t current_dim, int64_t base_offset, bool is_last);
 
             template <typename TargetT> Tensor<TargetT> cast() const;
             friend int main();
