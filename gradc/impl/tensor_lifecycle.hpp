@@ -12,7 +12,7 @@ namespace gradc {
     Tensor<T>::Tensor() : m_shape({}), m_strides({}), m_offset(0), m_state(nullptr), m_requires_grad(false) {} // default constructor
     
     template <typename T>
-    Tensor<T>::Tensor(T value) : m_shape({}), m_strides({}), m_offset(0), TensorState<T>(std::vector<T>(1, value)), m_requires_grad(false) {}
+    Tensor<T>::Tensor(T value) : m_shape({}), m_strides({}), m_offset(0), m_state(std::make_shared<TensorState<T>>(std::vector<T>(1, value))), m_requires_grad(false) {}
 
     template <typename T>
     Tensor<T>::Tensor(std::vector<size_t> shape, T init_val) 

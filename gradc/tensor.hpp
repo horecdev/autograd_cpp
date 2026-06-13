@@ -123,6 +123,10 @@ namespace gradc {
     template <typename T>
     class Tensor {
         static_assert(is_supported_tensor_type_v<T>, "FATAL: Attempted creating a Tensor with unsupported data type.");
+
+        template <typename U> friend class Tensor; // otherwise Tensor A cant look into T. B
+        template <typename U> friend class Node;
+
         private:
             std::vector<size_t> m_shape;
             std::vector<size_t> m_strides;
@@ -144,8 +148,8 @@ namespace gradc {
 
             // LIFECYCLE 
             Tensor();
-            Tensor(T value);
-            Tensor(std::vector<size_t> shape, T init_val = T());
+            explicit Tensor(T value);
+            explicit Tensor(std::vector<size_t> shape, T init_val = T());
             Tensor(std::vector<size_t> shape, bool requires_grad, LazyTag);
             Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<Storage<T>> storage, bool requires_grad);
             Tensor(std::vector<size_t> shape, std::vector<size_t> strides, size_t offset, std::shared_ptr<TensorState<T>> state, bool requires_grad);
@@ -164,25 +168,15 @@ namespace gradc {
 
             // GETTERS
 
-            const std::vector<size_t>& shape() const {
-                return m_shape;
-            }
+            const std::vector<size_t>& shape() const {return m_shape;}
 
-            const std::vector<size_t>& strides() const {
-                return m_strides;
-            }
+            const std::vector<size_t>& strides() const {return m_strides;}
 
-            const std::size_t offset() const {
-                return m_offset;
-            }
+            const std::size_t offset() const {return m_offset;}
 
-            const bool requires_grad() const {
-                return m_requires_grad;
-            }
+            const bool requires_grad() const {return m_requires_grad;}
 
-            DType dtype() const {
-                return type_to_dtype<T>();
-            }
+            DType dtype() const {return type_to_dtype<T>();}
 
             const auto get_realize_op_ptr_type() const {
                 if (m_state->m_realize_op == nullptr) {
@@ -221,18 +215,18 @@ namespace gradc {
             // MATH
             template <typename U, typename Func> friend void apply_in_place(Tensor<U>& left, const Tensor<U>& right, Func op);
             template <typename U, typename Func> friend Tensor<U> apply_out_of_place(const Tensor<U>& left, const Tensor<U>& right, const std::vector<size_t>& target_shape, Func op);
-            template <typename U, typename Func> friend Tensor<U> apply_reduction_operation(const Tensor<T> &source, const ReductionMetadata reduction_metadata, T init_value, Func op);
+            template <typename U, typename Func> friend Tensor<U> apply_reduction_operation(const Tensor<U>& source, const ReductionMetadata& reduction_metadata, U init_value, Func op);
 
-            template <typename U> friend Tensor<U> operator+(const Tensor<U> left, const Tensor<U> right); // we befriend whole family of functions named operator+. 
-            template <typename U> friend Tensor<U> operator*(const Tensor<U> left, const Tensor<U> right); // It operates on type U and U can be virtually anything
+            template <typename U, typename W> friend auto operator+(Tensor<U> left, Tensor<W> right); // we befriend whole family of functions named operator+. 
+            template <typename U, typename W> friend auto operator*(Tensor<U> left, Tensor<W> right); // It operates on type U and U can be virtually anything
 
-            template <typename U> friend Tensor<U>& operator+=(Tensor<U>& main, const Tensor<U> other);
-            template <typename U> friend Tensor<U>& operator*=(Tensor<U>& main, const Tensor<U> other);
+            template <typename U, typename W> friend Tensor<U>& operator+=(Tensor<U>& main, Tensor<W> other);
+            template <typename U, typename W> friend Tensor<U>& operator*=(Tensor<U>& main, Tensor<W> other);
 
             // REDUCTIONS
 
             Tensor sum(const std::vector<int64_t>& axes, bool keepdims) const;
-            template <typename OutT = std::conditional<std::is_integral_v<T>, float, T>> // if int: float. Otherwise T.
+            template <typename OutT = std::conditional_t<std::is_integral_v<T>, float, T>> // if int: float. Otherwise T.
             Tensor<OutT> mean(const std::vector<int64_t>& axes, bool keepdims) const;
 
             // UTILS

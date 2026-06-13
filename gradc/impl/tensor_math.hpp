@@ -12,7 +12,9 @@
 
 namespace gradc {
     template <typename T, typename U>
-    Tensor<std::common_type_t<T, U>> operator+(Tensor<T> left, Tensor<U> right) {
+    auto operator+(Tensor<T> left, Tensor<U> right) {
+        using PromotedT = std::common_type_t<T, U>;
+
         auto [p_left, p_right] = promote_to_common(std::move(left), std::move(right));
 
         std::vector<size_t> target_shape;
@@ -24,8 +26,8 @@ namespace gradc {
         }
 
         bool requires_grad = p_left.m_requires_grad || p_right.m_requires_grad;
-        Tensor<T> new_tensor = Tensor<T>(target_shape, requires_grad, lazy);
-        new_tensor.m_state->m_realize_op = std::make_unique<AddNode<T>>(std::move(p_left), std::move(p_right), std::move(target_shape));
+        Tensor<PromotedT> new_tensor = Tensor<PromotedT>(target_shape, requires_grad, lazy);
+        new_tensor.m_state->m_realize_op = std::make_unique<AddNode<PromotedT>>(std::move(p_left), std::move(p_right), std::move(target_shape));
         return new_tensor;
     }
 
@@ -36,13 +38,15 @@ namespace gradc {
     }
 
     template <typename T, typename U>
-    requires std::is_arithmetic_v<U>
+    requires std::is_arithmetic_v<T>
     auto operator+(T right_val, Tensor<U> left) { // scalar + Tensor
         return Tensor<T>(right_val) + std::move(left);
     }
 
     template <typename T, typename U>
-    Tensor<std::common_type_t<T, U>> operator*(Tensor<T> left, Tensor<U> right) {
+    auto operator*(Tensor<T> left, Tensor<U> right) {
+        using PromotedT = std::common_type_t<T, U>;
+
         auto [p_left, p_right] = promote_to_common(std::move(left), std::move(right));
 
         std::vector<size_t> target_shape;
@@ -54,8 +58,8 @@ namespace gradc {
         }
 
         bool requires_grad = p_left.m_requires_grad || p_right.m_requires_grad;
-        Tensor<T> new_tensor = Tensor<T>(target_shape, requires_grad, lazy);
-        new_tensor.m_state->m_realize_op = std::make_unique<MulNode<T>>(std::move(p_left), std::move(p_right), std::move(target_shape));
+        Tensor<PromotedT> new_tensor = Tensor<PromotedT>(target_shape, requires_grad, lazy);
+        new_tensor.m_state->m_realize_op = std::make_unique<MulNode<PromotedT>>(std::move(p_left), std::move(p_right), std::move(target_shape));
         return new_tensor;
     }
 
@@ -66,7 +70,7 @@ namespace gradc {
     }
 
     template <typename T, typename U>
-    requires std::is_arithmetic_v<U>
+    requires std::is_arithmetic_v<T>
     auto operator*(T right_val, Tensor<U> left) { // scalar + Tensor
         return Tensor<T>(right_val) * std::move(left);
     }
@@ -109,7 +113,7 @@ namespace gradc {
     }
 
     template <typename T, typename U>
-    Tensor<T>& operator*=(Tensor<T>& main, Tensor<U> other) {
+    Tensor<T>& operator*=(Tensor<T>& main, const Tensor<U> other) {
         using PromotedT = std::common_type_t<T, U>;
         Tensor<PromotedT> p_other;
 

@@ -190,9 +190,10 @@ namespace gradc {
 
             Tensor<OutT> realize() {
                 m_parent.realize();
-                Tensor<OutT> result = Tensor<OutT>(m_parent.m_shape);
+                Tensor<OutT> result = Tensor<OutT>(m_parent.shape());
+                std::shared_ptr<TensorState<InT>> parent_state = this->get_state(m_parent);
                 for (size_t i = 0; i < m_parent.volume(); ++i) {
-                    (result.m_state->m_storage->m_data)[i] = (result.m_state->m_storage->m_data)[i];
+                    (parent_state->m_storage->m_data)[i] = (parent_state->m_storage->m_data)[i];
                 }
 
                 return result;

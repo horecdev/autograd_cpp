@@ -439,7 +439,7 @@ namespace gradc {
             collapsed_result_shape.reserve(new_size);
             collapsed_result_strides.reserve(new_size);
 
-            for (size_t i = 0; i < n_dim; ++i) {
+            for (int64_t i = 0; i < n_dim; ++i) {
                 if (axes_to_keep[i]) {
                     collapsed_result_shape.push_back(result_shape[i]);
                     collapsed_result_strides.push_back(result_strides[i]);
@@ -464,7 +464,7 @@ namespace gradc {
             size_t in_strided_idx = source.m_offset; 
             size_t out_strided_idx = 0;
 
-            for (size_t i = 0; i < n_dim; ++i) {
+            for (int64_t i = 0; i < n_dim; ++i) {
                 in_strided_idx += odometer[i] * source.m_strides[i];
                 out_strided_idx += odometer[i] * reduction_metadata.temp_strides[i];
             }
@@ -497,11 +497,11 @@ namespace gradc {
             p_left = left.template cast<PromotedT>();
         }
 
-        if constexpr (std::is_same_v<T, PromotedT>) {
-            p_left = std::move(left);
+        if constexpr (std::is_same_v<U, PromotedT>) {
+            p_right = std::move(right);
         }
         else {
-            p_left = left.template cast<PromotedT>();
+            p_right = right.template cast<PromotedT>();
         }
 
         return std::make_pair(std::move(p_left), std::move(p_right));
