@@ -2,7 +2,6 @@
 #include "../tensor.hpp"
 
 #include <algorithm>
-#include <cstddef>
 #include <cstdint>
 #include <stdexcept>
 #include <utility>

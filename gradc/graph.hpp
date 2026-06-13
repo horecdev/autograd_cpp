@@ -192,8 +192,9 @@ namespace gradc {
                 m_parent.realize();
                 Tensor<OutT> result = Tensor<OutT>(m_parent.shape());
                 std::shared_ptr<TensorState<InT>> parent_state = this->get_state(m_parent);
+                std::shared_ptr<TensorState<OutT>> result_state = this->get_state(result);
                 for (int64_t i = 0; i < m_parent.volume(); ++i) {
-                    (result.m_state->m_storage->m_data)[i] = (parent_state->m_storage->m_data)[i];
+                    (result_state->m_storage->m_data)[i] = static_cast<OutT>((parent_state->m_storage->m_data)[i]);
                 }
 
                 return result;

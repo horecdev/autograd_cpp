@@ -4,7 +4,6 @@
 #include "../graph.hpp"
 #include "tensor_utils.hpp"
 
-#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <stdexcept>

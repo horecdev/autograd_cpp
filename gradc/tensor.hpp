@@ -2,7 +2,6 @@
 #include "node.hpp"
 #include "graph_fwd.hpp" // IWYU pragma: keep
 
-#include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <memory>
