@@ -116,7 +116,7 @@ namespace gradc {
             // The refcount doesnt change. State #2 has 1, State #1 has 3. A is the same tensor, but with new state and a node.
             bool requires_grad = main.m_requires_grad || p_other.m_requires_grad;
             std::shared_ptr<TensorState<T>> new_state = std::make_shared<TensorState<T>>();
-            new_state->m_realize_op = std::make_unique<AddNode<T>>(main, p_other);
+            new_state->m_realize_op = std::make_unique<AddNode<T>>(main, p_other, main.m_shape);
             main.m_state = std::move(new_state);
             main.m_requires_grad = requires_grad;
             return main;
@@ -167,7 +167,7 @@ namespace gradc {
         else {
             bool requires_grad = main.m_requires_grad || p_other.m_requires_grad;
             std::shared_ptr<TensorState<T>> new_state = std::make_shared<TensorState<T>>();
-            new_state->m_realize_op = std::make_unique<MulNode<T>>(main, p_other);
+            new_state->m_realize_op = std::make_unique<MulNode<T>>(main, p_other, main.m_shape);
             main.m_state = std::move(new_state);
             main.m_requires_grad = requires_grad;
             return main;
