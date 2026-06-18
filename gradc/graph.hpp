@@ -22,6 +22,10 @@ namespace gradc {
                 m_right.realize();
                 return apply_out_of_place(m_left, m_right, m_target_shape, [](T a, T b) {return a + b;});
             }
+
+            std::vector<Tensor<T>> get_inputs() const override {
+                return {m_left, m_right};
+            }
     };
 
     template <typename T>
@@ -37,6 +41,10 @@ namespace gradc {
                 m_left.realize();
                 m_right.realize();
                 return apply_out_of_place(m_left, m_right, m_target_shape, [](T a, T b) {return a * b;});
+            }
+
+            std::vector<Tensor<T>> get_inputs() const override {
+                return {m_left, m_right};
             }
     };
 

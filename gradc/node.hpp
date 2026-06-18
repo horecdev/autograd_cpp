@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 namespace gradc {
     template <typename T>
@@ -14,6 +15,8 @@ namespace gradc {
 
         public:
             virtual Tensor<T> realize() = 0;
+
+            virtual std::vector<Tensor<T>> get_inputs() = 0;
 
             virtual ~Node() {}
 

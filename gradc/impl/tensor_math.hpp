@@ -99,7 +99,7 @@ namespace gradc {
             }
         }
 
-        if (main.m_state.use_count() == 1) {
+        if (main.m_state.use_count() == 1 && main.m_state->m_storage.use_count() == 1) {
             // going with ELSE and logic below would edit TensorState across already saved graph pieces
             // say: y = a + b, then a += 5. Without ref counting the cached a inside y is edited, its m_op is now InPlaceAddNode. 
             // It executes even though it was done later.
@@ -153,7 +153,7 @@ namespace gradc {
             }
         }
         
-        if (main.m_state.use_count() == 1) {
+        if (main.m_state.use_count() == 1 && main.m_state->m_storage.use_count() == 1) {
             // going with ELSE and logic below would edit TensorState across already saved graph pieces
             // say: y = a + b, then a += 5. Without ref counting the cached a inside y is edited, its m_op is now InPlaceAddNode. 
             // It executes even though it was done later.

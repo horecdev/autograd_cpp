@@ -105,8 +105,13 @@ namespace gradc {
         }
     };
 
+    struct TensorStateBase {
+        public:
+            virtual std::vector<TensorStateBase*> get_dependencies() = 0;
+    };
+
     template <typename T>
-    struct TensorState {
+    struct TensorState : public TensorStateBase {
         std::shared_ptr<Storage<T>> m_storage; // nodes can share just storage
         std::unique_ptr<Node<T>> m_realize_op; // it makes no sense to share m_op, but not storage.
 
