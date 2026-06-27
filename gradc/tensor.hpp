@@ -6,8 +6,11 @@
 #include <iostream>
 #include <memory>
 #include <ostream>
+#include <stdexcept>
+#include <type_traits>
 #include <utility>
 #include <vector>
+#include <optional>
 
 namespace gradc {
 
@@ -115,6 +118,7 @@ namespace gradc {
         std::shared_ptr<Storage<T>> m_storage; // nodes can share just storage
         std::unique_ptr<Node<T>> m_creation_op; // it makes no sense to share m_op, but not storage.
         bool m_is_realized;
+        std::optional<Tensor<T>> m_grad = std::nullopt; // every TensorState has grad. Even reshapes. 
 
         TensorState() : m_storage(std::make_shared<Storage<T>>()), m_creation_op(nullptr), m_is_realized(false) {}
         
@@ -139,6 +143,15 @@ namespace gradc {
             std::shared_ptr<TensorState<T>> m_state;
             bool m_requires_grad;
 
+            static bool validate_requires_grad(bool requires_grad) {
+                if constexpr (!std::is_floating_point_v<T>) {
+                    if (requires_grad) {
+                        throw std::runtime_error("FATAL: Cannot require gradients on non-floating Tensors.");
+                    }
+                }
+                return requires_grad;
+            }
+
         public:
             void realize() {
                 if (m_state->m_is_realized != true) {
@@ -150,6 +163,8 @@ namespace gradc {
 
                 m_state->m_is_realized = true; // so we dont realize() twice (reflected across multiple aliases)
             }
+
+            void accumulate_grad(const Tensor<T>& incoming_grad);
 
             // LIFECYCLE 
             Tensor();
@@ -203,7 +218,7 @@ namespace gradc {
                 this->m_state->m_storage->m_data = data; // copy vector
             }
             Tensor& set_requires_grad(bool value) {
-                m_requires_grad = value;
+                m_requires_grad = validate_requires_grad(value);
                 return *this;
             }
 

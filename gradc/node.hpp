@@ -16,6 +16,8 @@ namespace gradc {
         public:
             virtual Tensor<T> realize() = 0;
 
+            virtual void backward(const Tensor<T>& out_grad) = 0;
+
             virtual std::vector<Tensor<T>> get_inputs() = 0;
 
             virtual ~Node() {}

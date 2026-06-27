@@ -33,7 +33,7 @@ namespace gradc {
     template <typename T>
     Tensor<T>::Tensor(std::vector<int64_t> shape, bool requires_grad, LazyTag)
         // can pass integer as m_strides, because it implicitly constructs a std::vector by just variable(arguments)
-        : m_shape(std::move(shape)), m_strides(std::ssize(m_shape)), m_offset(0), m_requires_grad(requires_grad) {
+        : m_shape(std::move(shape)), m_strides(std::ssize(m_shape)), m_offset(0), m_requires_grad(validate_requires_grad(requires_grad)) {
             if (std::ssize(m_shape) == 0) { // a scalar (0-dimensional)
                 m_state = std::make_shared<TensorState<T>>();
             }
@@ -48,11 +48,11 @@ namespace gradc {
 
     template <typename T> // backdoor
     Tensor<T>::Tensor(std::vector<int64_t> shape, std::vector<int64_t> strides, int64_t offset, std::shared_ptr<TensorState<T>> state, bool requires_grad) 
-        : m_shape(std::move(shape)), m_strides(std::move(strides)), m_offset(offset), m_state(std::move(state)), m_requires_grad(requires_grad) {} 
+        : m_shape(std::move(shape)), m_strides(std::move(strides)), m_offset(offset), m_state(std::move(state)), m_requires_grad(validate_requires_grad(requires_grad)) {} 
 
     template <typename T> // lobotomy constructor
     Tensor<T>::Tensor(std::vector<int64_t> shape, std::vector<int64_t> strides, int64_t offset, std::shared_ptr<Storage<T>> storage, bool requires_grad) 
-        : m_shape(std::move(shape)), m_strides(std::move(strides)), m_offset(offset), m_requires_grad(requires_grad) {
+        : m_shape(std::move(shape)), m_strides(std::move(strides)), m_offset(offset), m_requires_grad(validate_requires_grad(requires_grad)) {
             m_state = std::make_shared<TensorState<T>>(std::move(storage)); // op is nullptr
         }
     
