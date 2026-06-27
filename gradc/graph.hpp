@@ -107,7 +107,7 @@ namespace gradc {
             }
 
             void backward(const Tensor<T>& out_grad) override {
-                
+                m_parent.accumulate_grad(Tensor<T>(m_parent.m_shape, m_reduction_metadata.temp_strides, 0, out_grad.m_state->m_storage, false));
             }
     };
 
@@ -124,6 +124,10 @@ namespace gradc {
                 Tensor<T> summed = apply_reduction_operation(m_parent, m_reduction_metadata, T(), [](T a, T b){return a + b;});
                 apply_in_place(summed, Tensor<T>(static_cast<T>(m_reduction_metadata.reduced_vol)), [](T& a, T b){a /= b;});
                 return summed;
+            }
+
+            void backward(const Tensor<T>& out_grad) {
+                
             }
     };
 

@@ -509,7 +509,7 @@ namespace gradc {
         }
 
         ReductionMetadata red_meta = infer_reduction_metadata(broadcasted_shape, broadcasted_axes, false);
-        Tensor<T> reduced = apply_reduction_operation(raw_grad, red_meta, T(0), [](T a, T b){return a + b;});
+        Tensor<T> reduced = apply_reduction_operation(raw_grad, red_meta, T(), [](T a, T b){return a + b;});
 
         return Tensor<T>(parent.m_shape, parent.m_strides, 0, std::move(reduced.m_state->m_storage), false);
         // We keepdims=false so [2, 1] broadcasted into [2, 5] turns into [2]. To fix that, we just use the same shape/strides as the original (parent).
