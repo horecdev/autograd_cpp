@@ -110,7 +110,7 @@ namespace gradc {
 
     struct TensorStateBase {
         public:
-            virtual std::vector<TensorStateBase*> get_dependencies() = 0;
+            virtual std::vector<TensorStateBase*> get_dependencies() const = 0;
     };
 
     template <typename T>
@@ -127,6 +127,13 @@ namespace gradc {
         TensorState(std::shared_ptr<Storage<T>> storage) : m_storage(std::move(storage)), m_creation_op(nullptr), m_is_realized(false) {} // copy tensor storage, set m_r_op to be nothing
 
         TensorState(std::shared_ptr<Storage<T>> storage, std::unique_ptr<Node<T>> realize_op) : m_storage(std::move(storage)), m_creation_op(std::move(realize_op)), m_is_realized(false) {}
+
+        std::vector<TensorStateBase*> get_dependencies() const override {
+            if (m_creation_op == nullptr) {
+                return std::vector<TensorStateBase*>();
+            }
+            return m_creation_op->get_input_states();
+        }
     };
 
     template <typename T>
@@ -162,6 +169,10 @@ namespace gradc {
                 }
 
                 m_state->m_is_realized = true; // so we dont realize() twice (reflected across multiple aliases)
+            }
+
+            void backward() {
+                // TODO: call toposort, iterate, call, make it work
             }
 
             void accumulate_grad(const Tensor<T>& incoming_grad);

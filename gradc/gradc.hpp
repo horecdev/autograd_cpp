@@ -13,3 +13,4 @@
 #include "impl/tensor_shape.hpp" // IWYU pragma: keep
 #include "impl/tensor_math.hpp" // IWYU pragma: keep
 #include "impl/tensor_reductions.hpp" // IWYU pragma: keep
+#include "impl/autograd.hpp" // IWYU pragma: keep

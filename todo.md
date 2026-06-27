@@ -1,4 +1,6 @@
 - Write another path for math ops where shapes match (blazing fast iterate over whole array)
 - In-place optimization after graph is built. (normally just AddNodes)
-- 
-- 
+- Compilator basically
+- CUDA
+- Backward pass
+- Toposort

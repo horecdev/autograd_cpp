@@ -23,8 +23,8 @@ namespace gradc {
                 return apply_out_of_place(m_left, m_right, m_target_shape, [](T a, T b) {return a + b;});
             }
 
-            std::vector<Tensor<T>> get_inputs() const override {
-                return {m_left, m_right};
+            std::vector<Tensor<T>> get_input_states() const override {
+                return {m_left.m_state, m_right.m_state};
             }
     };
 
@@ -43,8 +43,8 @@ namespace gradc {
                 return apply_out_of_place(m_left, m_right, m_target_shape, [](T a, T b) {return a * b;});
             }
 
-            std::vector<Tensor<T>> get_inputs() const override {
-                return {m_left, m_right};
+            std::vector<Tensor<T>> get_input_states() const override {
+                return {m_left.m_state, m_right.m_state};
             }
     };
 
@@ -196,7 +196,7 @@ namespace gradc {
         public:
             CastNode(Tensor<InT> parent) : m_parent(std::move(parent)) {}
 
-            Tensor<OutT> realize() {
+            Tensor<OutT> realize() { // TODO: Move somewhere else (dont do math inside castnode)
                 m_parent.realize();
                 Tensor<OutT> result = Tensor<OutT>(m_parent.shape());
                 std::shared_ptr<TensorState<InT>> parent_state = this->get_state(m_parent);

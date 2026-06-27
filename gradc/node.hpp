@@ -4,6 +4,9 @@
 #include <vector>
 
 namespace gradc {
+
+    struct TensorStateBase;
+
     template <typename T>
     struct TensorState;
 
@@ -18,7 +21,7 @@ namespace gradc {
 
             virtual void backward(const Tensor<T>& out_grad) = 0;
 
-            virtual std::vector<Tensor<T>> get_inputs() = 0;
+            virtual std::vector<TensorStateBase*> get_input_states() = 0;
 
             virtual ~Node() {}
 
