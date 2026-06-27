@@ -23,13 +23,13 @@ namespace gradc {
                 return apply_out_of_place(m_left, m_right, m_target_shape, [](T a, T b) {return a + b;});
             }
 
-            std::vector<Tensor<T>> get_input_states() const override {
-                return {m_left.m_state, m_right.m_state};
+            std::vector<TensorStateBase*> get_input_states() const override {
+                return {m_left.m_state.get(), m_right.m_state.get()};
             }
 
             void backward(const Tensor<T>& out_grad) {
-                m_left.accumulate_grad(out_grad);
-                m_right.accumulate_grad(out_grad);
+                m_left.accumulate_grad(unbroadcast_grad(out_grad, m_left, m_target_shape));
+                m_right.accumulate_grad(unbroadcast_grad(out_grad, m_right, m_target_shape));
             }
     };
 
@@ -48,16 +48,16 @@ namespace gradc {
                 return apply_out_of_place(m_left, m_right, m_target_shape, [](T a, T b) {return a * b;});
             }
 
-            std::vector<Tensor<T>> get_input_states() const override {
+            std::vector<TensorStateBase*> get_input_states() const override {
                 return {m_left.m_state, m_right.m_state};
             }
 
             void backward(const Tensor<T>& out_grad) {
-                Tensor<T> left_grad = apply_out_of_place(out_grad, m_right, m_target_shape, [](T a, T b){return a * b;});
-                Tensor<T> right_grad = apply_out_of_place(out_grad, m_left, m_target_shape, [](T a, T b){return a * b;});
+                Tensor<T> raw_left_grad = apply_out_of_place(out_grad, m_right, m_target_shape, [](T a, T b){return a * b;});
+                Tensor<T> raw_right_grad = apply_out_of_place(out_grad, m_left, m_target_shape, [](T a, T b){return a * b;});
 
-                m_left.accumulate_grad(left_grad);
-                m_right.accumulate_grad(right_grad);
+                m_left.accumulate_grad(unbroadcast_grad(raw_left_grad, m_left, m_target_shape));
+                m_right.accumulate_grad(unbroadcast_grad(raw_right_grad, m_right, m_target_shape));
             }
     };
 
@@ -104,6 +104,10 @@ namespace gradc {
             Tensor<T> realize() override {
                 m_parent.realize();
                 return apply_reduction_operation(m_parent, m_reduction_metadata, T(), [](T a, T b){return a + b;});
+            }
+
+            void backward(const Tensor<T>& out_grad) override {
+                
             }
     };
 

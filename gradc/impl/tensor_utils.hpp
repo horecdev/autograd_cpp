@@ -456,6 +456,10 @@ namespace gradc {
     template <typename T, typename Func>
     inline Tensor<T> apply_reduction_operation(const Tensor<T>& source, const ReductionMetadata& reduction_metadata, T init_value, Func op) {
         const int64_t n_dim = std::ssize(source.m_shape);
+        if (n_dim == 0) {
+            throw std::runtime_error("Tried reducing a 0-Dimensional Tensor.");
+        }
+
         Tensor<T> result = Tensor<T>(reduction_metadata.result_shape, init_value);
 
         std::vector<int64_t> odometer(n_dim, 0);
@@ -480,15 +484,36 @@ namespace gradc {
         return result;
     }
 
-    inline std::vector<int64_t> find_expanded_dim_indices(std::vector<int64_t> result_shape, std::vector<int64_t> initial_shape) {
+    inline std::vector<int64_t> find_broadcasted_axes(const std::vector<int64_t>& broadcasted_shape, const std::vector<int64_t>& initial_shape) {
         std::vector<int64_t> found_axes;
-        found_axes.reserve(std::ssize(result_shape));
-        for (int64_t i = 0; i < std::ssize(result_shape) - std::ssize(initial_shape); ++i) {
+        found_axes.reserve(std::ssize(broadcasted_shape));
+        for (int64_t i = 0; i < std::ssize(broadcasted_shape) - std::ssize(initial_shape); ++i) {
             found_axes.push_back(i);
         }
         for (int64_t init_idx = 0; init_idx < std::ssize(initial_shape); ++init_idx) {
-            res_idx = 
+            int64_t res_idx = init_idx + std::ssize(broadcasted_shape) - std::ssize(initial_shape);
+            if (broadcasted_shape[res_idx] != initial_shape[init_idx]) {
+                found_axes.push_back(res_idx);
+            }
         }
+
+        return found_axes;
+    }
+
+    template <typename T>
+    Tensor<T> unbroadcast_grad(const Tensor<T>& raw_grad, const Tensor<T>& parent, const std::vector<int64_t>& broadcasted_shape) {
+        std::vector<int64_t> broadcasted_axes = find_broadcasted_axes(broadcasted_shape, parent.m_shape);
+
+        if (broadcasted_axes.empty()) {
+            return raw_grad;
+        }
+
+        ReductionMetadata red_meta = infer_reduction_metadata(broadcasted_shape, broadcasted_axes, false);
+        Tensor<T> reduced = apply_reduction_operation(raw_grad, red_meta, T(0), [](T a, T b){return a + b;});
+
+        return Tensor<T>(parent.m_shape, parent.m_strides, 0, std::move(reduced.m_state->m_storage), false);
+        // We keepdims=false so [2, 1] broadcasted into [2, 5] turns into [2]. To fix that, we just use the same shape/strides as the original (parent).
+        // It works because reduction operation return a contiguous tensor.
     }
 
     template <typename T, typename U>
