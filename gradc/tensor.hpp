@@ -113,15 +113,16 @@ namespace gradc {
     template <typename T>
     struct TensorState : public TensorStateBase {
         std::shared_ptr<Storage<T>> m_storage; // nodes can share just storage
-        std::unique_ptr<Node<T>> m_realize_op; // it makes no sense to share m_op, but not storage.
+        std::unique_ptr<Node<T>> m_creation_op; // it makes no sense to share m_op, but not storage.
+        bool m_is_realized;
 
-        TensorState() : m_storage(std::make_shared<Storage<T>>()), m_realize_op(nullptr) {}
+        TensorState() : m_storage(std::make_shared<Storage<T>>()), m_creation_op(nullptr), m_is_realized(false) {}
         
-        TensorState(std::vector<T>&& data) : m_storage(std::make_shared<Storage<T>>(std::move(data))), m_realize_op(nullptr) {}
+        TensorState(std::vector<T>&& data) : m_storage(std::make_shared<Storage<T>>(std::move(data))), m_creation_op(nullptr), m_is_realized(false) {}
 
-        TensorState(std::shared_ptr<Storage<T>> storage) : m_storage(std::move(storage)), m_realize_op(nullptr) {} // copy tensor storage, set m_r_op to be nothing
+        TensorState(std::shared_ptr<Storage<T>> storage) : m_storage(std::move(storage)), m_creation_op(nullptr), m_is_realized(false) {} // copy tensor storage, set m_r_op to be nothing
 
-        TensorState(std::shared_ptr<Storage<T>> storage, std::unique_ptr<Node<T>> realize_op) : m_storage(std::move(storage)), m_realize_op(std::move(realize_op)) {}
+        TensorState(std::shared_ptr<Storage<T>> storage, std::unique_ptr<Node<T>> realize_op) : m_storage(std::move(storage)), m_creation_op(std::move(realize_op)), m_is_realized(false) {}
     };
 
     template <typename T>
@@ -140,14 +141,14 @@ namespace gradc {
 
         public:
             void realize() {
-                if (m_state->m_realize_op != nullptr) { // is there an m_op? if so, execute it
-                    Tensor computed_result = m_state->m_realize_op->realize();
+                if (m_state->m_is_realized != true) {
+                    Tensor computed_result = m_state->m_creation_op->realize();
                     if (m_state->m_storage != computed_result.m_state->m_storage) {
                         m_state->m_storage->m_data = std::move(computed_result.m_state->m_storage->m_data);
                     }
                 }
 
-                m_state->m_realize_op = nullptr; // so we dont realize() twice (reflected across multiple aliases)
+                m_state->m_is_realized = true; // so we dont realize() twice (reflected across multiple aliases)
             }
 
             // LIFECYCLE 
@@ -183,10 +184,10 @@ namespace gradc {
             DType dtype() const {return type_to_dtype<T>();}
 
             const auto get_realize_op_ptr_type() const {
-                if (m_state->m_realize_op == nullptr) {
+                if (m_state->m_creation_op == nullptr) {
                     return "nullptr";
                 }
-                return typeid(*m_state->m_realize_op).name();
+                return typeid(*m_state->m_creation_op).name();
             }
 
             int64_t volume() const {

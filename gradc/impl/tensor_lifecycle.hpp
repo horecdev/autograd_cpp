@@ -97,7 +97,7 @@ namespace gradc {
     template <typename T>
     Tensor<T> Tensor<T>::clone() const { 
         Tensor<T> tensor_copy = Tensor(m_shape, m_requires_grad, lazy);
-        tensor_copy.m_state->m_realize_op = std::make_unique<CloneNode<T>>(*this);
+        tensor_copy.m_state->m_creation_op = std::make_unique<CloneNode<T>>(*this);
         return tensor_copy;
     }
 
@@ -109,7 +109,7 @@ namespace gradc {
         }
         else {
             Tensor<TargetT> new_tensor = Tensor<TargetT>(m_shape, m_requires_grad, lazy);
-            new_tensor.m_state->m_realize_op = std::make_unique<CastNode<T, TargetT>>(*this);
+            new_tensor.m_state->m_creation_op = std::make_unique<CastNode<T, TargetT>>(*this);
             return new_tensor;
         }
     }

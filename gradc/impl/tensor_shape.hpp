@@ -28,7 +28,7 @@ namespace gradc {
     template <typename T>
     Tensor<T> Tensor<T>::contiguous() const {
         Tensor result = Tensor(m_shape, m_requires_grad, lazy);
-        result.m_state->m_realize_op = std::make_unique<ContiguousNode<T>>(*this);
+        result.m_state->m_creation_op = std::make_unique<ContiguousNode<T>>(*this);
 
         return result;
     }
@@ -45,7 +45,7 @@ namespace gradc {
         std::swap(new_strides[dim0], new_strides[dim1]);
 
         Tensor result = Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_state->m_storage, m_requires_grad);
-        result.m_state->m_realize_op = std::make_unique<TransposeNode<T>>(*this); 
+        result.m_state->m_creation_op = std::make_unique<TransposeNode<T>>(*this); 
         return result;
     }
 
@@ -70,7 +70,7 @@ namespace gradc {
             new_strides[target_ax] = m_strides[src_ax];
         }
         Tensor result = Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_state->m_storage, m_requires_grad);
-        result.m_state->m_realize_op = std::make_unique<PermuteNode<T>>(*this);
+        result.m_state->m_creation_op = std::make_unique<PermuteNode<T>>(*this);
         return result;
     }
 
@@ -118,13 +118,13 @@ namespace gradc {
 
         if (this->is_contiguous()) {
             Tensor result = Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_state->m_storage, m_requires_grad);
-            result.m_state->m_realize_op = std::make_unique<ReshapeNode<T>>(*this);
+            result.m_state->m_creation_op = std::make_unique<ReshapeNode<T>>(*this);
             return result;
         }
         else {
             Tensor contiguous_tensor = this->contiguous();
             Tensor result = Tensor(std::move(new_shape), std::move(new_strides), 0, contiguous_tensor.m_state->m_storage, m_requires_grad);
-            result.m_state->m_realize_op = std::make_unique<ReshapeNode<T>>(std::move(contiguous_tensor));
+            result.m_state->m_creation_op = std::make_unique<ReshapeNode<T>>(std::move(contiguous_tensor));
             return result;
         }
     }

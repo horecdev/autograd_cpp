@@ -27,7 +27,7 @@ namespace gradc {
 
         bool requires_grad = p_left.m_requires_grad || p_right.m_requires_grad;
         Tensor<PromotedT> new_tensor = Tensor<PromotedT>(target_shape, requires_grad, lazy);
-        new_tensor.m_state->m_realize_op = std::make_unique<AddNode<PromotedT>>(std::move(p_left), std::move(p_right), std::move(target_shape));
+        new_tensor.m_state->m_creation_op = std::make_unique<AddNode<PromotedT>>(std::move(p_left), std::move(p_right), std::move(target_shape));
         return new_tensor;
     }
 
@@ -59,7 +59,7 @@ namespace gradc {
 
         bool requires_grad = p_left.m_requires_grad || p_right.m_requires_grad;
         Tensor<PromotedT> new_tensor = Tensor<PromotedT>(target_shape, requires_grad, lazy);
-        new_tensor.m_state->m_realize_op = std::make_unique<MulNode<PromotedT>>(std::move(p_left), std::move(p_right), std::move(target_shape));
+        new_tensor.m_state->m_creation_op = std::make_unique<MulNode<PromotedT>>(std::move(p_left), std::move(p_right), std::move(target_shape));
         return new_tensor;
     }
 
@@ -89,7 +89,7 @@ namespace gradc {
             p_other = std::move(other);
         }
 
-        if (main.m_requires_grad && main.m_state->m_realize_op == nullptr) {
+        if (main.m_requires_grad && main.m_state->m_creation_op == nullptr) {
             throw std::runtime_error("Cannot mutate leaf tensor that requires gradients in-place.");
         }
 
@@ -103,9 +103,9 @@ namespace gradc {
             // going with ELSE and logic below would edit TensorState across already saved graph pieces
             // say: y = a + b, then a += 5. Without ref counting the cached a inside y is edited, its m_op is now InPlaceAddNode. 
             // It executes even though it was done later.
-            std::shared_ptr<TensorState<T>> old_tensor_state = std::make_shared<TensorState<T>>(main.m_state->m_storage, std::move(main.m_state->m_realize_op));
+            std::shared_ptr<TensorState<T>> old_tensor_state = std::make_shared<TensorState<T>>(main.m_state->m_storage, std::move(main.m_state->m_creation_op));
             Tensor<T> old_main = Tensor<T>(main.m_shape, main.m_strides, main.m_offset, std::move(old_tensor_state), main.m_requires_grad);
-            main.m_state->m_realize_op = std::make_unique<InPlaceAddNode<T>>(std::move(old_main), std::move(p_other));
+            main.m_state->m_creation_op = std::make_unique<InPlaceAddNode<T>>(std::move(old_main), std::move(p_other));
             main.m_requires_grad = main.m_requires_grad || p_other.m_requires_grad;
             return main;
         }
@@ -116,7 +116,7 @@ namespace gradc {
             // The refcount doesnt change. State #2 has 1, State #1 has 3. A is the same tensor, but with new state and a node.
             bool requires_grad = main.m_requires_grad || p_other.m_requires_grad;
             std::shared_ptr<TensorState<T>> new_state = std::make_shared<TensorState<T>>();
-            new_state->m_realize_op = std::make_unique<AddNode<T>>(main, p_other, main.m_shape);
+            new_state->m_creation_op = std::make_unique<AddNode<T>>(main, p_other, main.m_shape);
             main.m_state = std::move(new_state);
             main.m_requires_grad = requires_grad;
             return main;
@@ -143,7 +143,7 @@ namespace gradc {
             p_other = std::move(other);
         }
 
-        if (main.m_requires_grad && main.m_state->m_realize_op == nullptr) { // we are using toposort to get rid of temporary results using leaf nodes as a stop-point, and in-place math literally moves it inside the graph.
+        if (main.m_requires_grad && main.m_state->m_creation_op == nullptr) { // we are using toposort to get rid of temporary results using leaf nodes as a stop-point, and in-place math literally moves it inside the graph.
             throw std::runtime_error("Cannot mutate leaf tensor that requires gradients in-place.");
         }
 
@@ -157,9 +157,9 @@ namespace gradc {
             // going with ELSE and logic below would edit TensorState across already saved graph pieces
             // say: y = a + b, then a += 5. Without ref counting the cached a inside y is edited, its m_op is now InPlaceAddNode. 
             // It executes even though it was done later.
-            std::shared_ptr<TensorState<T>> old_tensor_state = std::make_shared<TensorState<T>>(main.m_state->m_storage, std::move(main.m_state->m_realize_op));
+            std::shared_ptr<TensorState<T>> old_tensor_state = std::make_shared<TensorState<T>>(main.m_state->m_storage, std::move(main.m_state->m_creation_op));
             Tensor<T> old_main = Tensor<T>(main.m_shape, main.m_strides, main.m_offset, std::move(old_tensor_state), main.m_requires_grad);
-            main.m_state->m_realize_op = std::make_unique<InPlaceMulNode<T>>(std::move(old_main), std::move(p_other));
+            main.m_state->m_creation_op = std::make_unique<InPlaceMulNode<T>>(std::move(old_main), std::move(p_other));
             main.m_requires_grad = main.m_requires_grad || p_other.m_requires_grad;
             return main;
         }
@@ -167,7 +167,7 @@ namespace gradc {
         else {
             bool requires_grad = main.m_requires_grad || p_other.m_requires_grad;
             std::shared_ptr<TensorState<T>> new_state = std::make_shared<TensorState<T>>();
-            new_state->m_realize_op = std::make_unique<MulNode<T>>(main, p_other, main.m_shape);
+            new_state->m_creation_op = std::make_unique<MulNode<T>>(main, p_other, main.m_shape);
             main.m_state = std::move(new_state);
             main.m_requires_grad = requires_grad;
             return main;
