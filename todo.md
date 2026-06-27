@@ -1,6 +1,6 @@
-- Write another path for math ops where shapes match (blazing fast iterate over whole array)
-- In-place optimization after graph is built. (normally just AddNodes)
-- Compilator basically
+DONE Toposort
+- 10 Backward passes
+- SIMD fast paths
+- AVX 32/64 byte alignment
+- Compilator basically (Swap out AddNodes, InPlaceAddNodes. Remove redundant memory?)
 - CUDA
-- Backward pass
-- Toposort

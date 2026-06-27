@@ -26,6 +26,8 @@ namespace gradc {
             std::vector<Tensor<T>> get_input_states() const override {
                 return {m_left.m_state, m_right.m_state};
             }
+
+            void backward(const Tensor<T>& out_grad)
     };
 
     template <typename T>

@@ -111,6 +111,8 @@ namespace gradc {
     struct TensorStateBase {
         public:
             virtual std::vector<TensorStateBase*> get_dependencies() const = 0;
+
+            virtual void backward() const = 0;
     };
 
     template <typename T>
@@ -133,6 +135,10 @@ namespace gradc {
                 return std::vector<TensorStateBase*>();
             }
             return m_creation_op->get_input_states();
+        }
+
+        void backward() const override {
+            m_creation_op->backward(m_grad.value());
         }
     };
 
@@ -171,9 +177,7 @@ namespace gradc {
                 m_state->m_is_realized = true; // so we dont realize() twice (reflected across multiple aliases)
             }
 
-            void backward() {
-                // TODO: call toposort, iterate, call, make it work
-            }
+            void backward();
 
             void accumulate_grad(const Tensor<T>& incoming_grad);
 
