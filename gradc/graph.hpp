@@ -27,7 +27,10 @@ namespace gradc {
                 return {m_left.m_state, m_right.m_state};
             }
 
-            void backward(const Tensor<T>& out_grad)
+            void backward(const Tensor<T>& out_grad) {
+                m_left.accumulate_grad(out_grad);
+                m_right.accumulate_grad(out_grad);
+            }
     };
 
     template <typename T>
@@ -47,6 +50,14 @@ namespace gradc {
 
             std::vector<Tensor<T>> get_input_states() const override {
                 return {m_left.m_state, m_right.m_state};
+            }
+
+            void backward(const Tensor<T>& out_grad) {
+                Tensor<T> left_grad = apply_out_of_place(out_grad, m_right, m_target_shape, [](T a, T b){return a * b;});
+                Tensor<T> right_grad = apply_out_of_place(out_grad, m_left, m_target_shape, [](T a, T b){return a * b;});
+
+                m_left.accumulate_grad(left_grad);
+                m_right.accumulate_grad(right_grad);
             }
     };
 

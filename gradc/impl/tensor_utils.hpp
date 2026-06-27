@@ -480,6 +480,17 @@ namespace gradc {
         return result;
     }
 
+    inline std::vector<int64_t> find_expanded_dim_indices(std::vector<int64_t> result_shape, std::vector<int64_t> initial_shape) {
+        std::vector<int64_t> found_axes;
+        found_axes.reserve(std::ssize(result_shape));
+        for (int64_t i = 0; i < std::ssize(result_shape) - std::ssize(initial_shape); ++i) {
+            found_axes.push_back(i);
+        }
+        for (int64_t init_idx = 0; init_idx < std::ssize(initial_shape); ++init_idx) {
+            res_idx = 
+        }
+    }
+
     template <typename T, typename U>
     auto promote_to_common(Tensor<T> left, Tensor<U> right) {
         // .template is a promise to the compiler that cast is a template (it doesnt know what T is during first read, 
