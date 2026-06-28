@@ -185,6 +185,7 @@ namespace gradc {
             Tensor();
             explicit Tensor(T value);
             explicit Tensor(std::vector<int64_t> shape, T init_val = T());
+            Tensor(std::vector<int64_t> shape, std::shared_ptr<Storage<T>> storage);
             Tensor(std::vector<int64_t> shape, bool requires_grad, LazyTag);
             Tensor(std::vector<int64_t> shape, std::vector<int64_t> strides, int64_t offset, std::shared_ptr<Storage<T>> storage, bool requires_grad);
             Tensor(std::vector<int64_t> shape, std::vector<int64_t> strides, int64_t offset, std::shared_ptr<TensorState<T>> state, bool requires_grad);
@@ -196,6 +197,7 @@ namespace gradc {
             Tensor clone() const;
 
             // INDEXING
+            Tensor create_slice_view(const std::vector<IndexDesc>& descriptors);
             template <typename... Args>
             Tensor operator[](Args... args) const;
 

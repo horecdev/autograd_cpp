@@ -12,6 +12,30 @@
 #include <vector>
 
 namespace gradc {
+
+    template <typename T> 
+    Tensor<T> Tensor<T>::create_slice_view(const std::vector<IndexDesc>& descriptors) {
+        std::vector<int64_t> new_shape;
+        std::vector<int64_t> new_strides;
+        int64_t new_offset = m_offset;
+        new_shape.reserve(sizeof...(args)); // max amount of elements reserved upfront (evades dynamic reallocations)
+        new_strides.reserve(sizeof...(args));
+        for (int i = 0; i < sizeof...(args); ++i) {
+            if (descriptors[i].m_is_all) {
+                new_shape.push_back(m_shape[i]); // worked it out on paper
+                new_strides.push_back(m_strides[i]);   
+            }
+            else {
+                int64_t coord = descriptors[i].m_value;
+                coord = normalize_axis(coord, m_shape[i]);
+                new_offset += coord * m_strides[i];
+            }
+        }
+        Tensor<T> result = Tensor(std::move(new_shape), std::move(new_strides), new_offset, m_state->m_storage, m_requires_grad);
+        result.m_state->m_creation_op = std::make_unique<SliceNode<T>>(*this);
+        return result;
+    }
+
     template <typename T>
     template <typename... Args> // ... attached to typename means: create a bucket of types and name it Args.
     Tensor<T> Tensor<T>::operator[](Args... args) const { // ... next to the type bucket, before args: Look element-wise at both. Put type inside type bucket, argument inside args.

@@ -28,8 +28,8 @@ namespace gradc {
             }
 
             void backward(const Tensor<T>& out_grad) {
-                m_left.accumulate_grad(unbroadcast_grad(out_grad, m_left, m_target_shape));
-                m_right.accumulate_grad(unbroadcast_grad(out_grad, m_right, m_target_shape));
+                m_left.accumulate_grad(unbroadcast_grad(out_grad, m_left));
+                m_right.accumulate_grad(unbroadcast_grad(out_grad, m_right));
             }
     };
 
@@ -56,10 +56,11 @@ namespace gradc {
                 Tensor<T> raw_left_grad = apply_out_of_place(out_grad, m_right, m_target_shape, [](T a, T b){return a * b;});
                 Tensor<T> raw_right_grad = apply_out_of_place(out_grad, m_left, m_target_shape, [](T a, T b){return a * b;});
 
-                m_left.accumulate_grad(unbroadcast_grad(raw_left_grad, m_left, m_target_shape));
-                m_right.accumulate_grad(unbroadcast_grad(raw_right_grad, m_right, m_target_shape));
+                m_left.accumulate_grad(unbroadcast_grad(raw_left_grad, m_left));
+                m_right.accumulate_grad(unbroadcast_grad(raw_right_grad, m_right));
             }
     };
+
 
     template <typename T>
     class InPlaceAddNode : public Node<T> {
@@ -127,7 +128,9 @@ namespace gradc {
             }
 
             void backward(const Tensor<T>& out_grad) {
-                
+                Tensor<T> divided_grad = apply_out_of_place(out_grad, Tensor<T>(static_cast<T>(m_reduction_metadata.reduced_vol)), out_grad.m_shape, [](T a, T b){return a / b;});
+                Tensor<T> strided_mean_grad = Tensor<T>(m_parent.m_shape, m_reduction_metadata.temp_strides, 0, divided_grad.m_state->m_storage, false);
+                m_parent.accumulate_grad(strided_mean_grad);
             }
     };
 
@@ -142,6 +145,10 @@ namespace gradc {
             Tensor<T> realize() override {
                 m_parent.realize();
                 return lobotomized_contiguous(m_parent); // does not copy whole data for a slice
+            }
+
+            void backward(const Tensor<T>& out_grad) {
+
             }
     };
 
@@ -201,12 +208,18 @@ namespace gradc {
     class SliceNode: public Node<T> {
         private: 
             Tensor<T> m_parent;
+            std::vector<IndexDesc> m_slice_info;
         public:
-            SliceNode(Tensor<T> parent) : m_parent(std::move(parent)) {}
+            SliceNode(Tensor<T> parent, std::vector<IndexDesc> slice_info) : m_parent(std::move(parent)), m_slice_info(std::move(slice_info)) {}
 
             Tensor<T> realize() override {
                 m_parent.realize();
                 return m_parent;
+            }
+
+            void backward(const Tensor<T>& out_grad) {
+                Tensor<T> full_grad = Tensor<T>(m_parent.m_shape, T());
+
             }
     };
 

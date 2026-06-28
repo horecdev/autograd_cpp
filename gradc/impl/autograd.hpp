@@ -43,7 +43,7 @@ namespace gradc {
         if (!m_requires_grad) {return;}
 
         if (!m_state->m_grad.has_value()) {
-            Tensor<T> local_grad = Tensor<T>(m_shape, T(0));
+            Tensor<T> local_grad = Tensor<T>(m_shape, T());
             apply_in_place(local_grad, incoming_grad, [](T &a, T b) {a += b;});
             m_state->m_grad = std::move(local_grad);
         }

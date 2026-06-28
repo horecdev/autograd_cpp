@@ -134,6 +134,29 @@ namespace gradc {
         return new_contiguous;
     }
 
+    template <typename T> 
+    Tensor<T>::create_slice_view(const std::vector<IndexDesc>& descriptors) {
+        std::vector<int64_t> new_shape;
+        std::vector<int64_t> new_strides;
+        int64_t new_offset = m_offset;
+        new_shape.reserve(sizeof...(args)); // max amount of elements reserved upfront (evades dynamic reallocations)
+        new_strides.reserve(sizeof...(args));
+        for (int i = 0; i < sizeof...(args); ++i) {
+            if (descriptors[i].m_is_all) {
+                new_shape.push_back(m_shape[i]); // worked it out on paper
+                new_strides.push_back(m_strides[i]);   
+            }
+            else {
+                int64_t coord = descriptors[i].m_value;
+                coord = normalize_axis(coord, m_shape[i]);
+                new_offset += coord * m_strides[i];
+            }
+        }
+        Tensor<T> result = Tensor(std::move(new_shape), std::move(new_strides), new_offset, m_state->m_storage, m_requires_grad);
+        result.m_state->m_creation_op = std::make_unique<SliceNode<T>>(*this);
+        return result;
+    }
+
     template <typename T, typename Func>
     void apply_in_place(Tensor<T>& left, const Tensor<T>& right, Func op) { 
         if (left.m_shape.empty() && right.m_shape.empty()) {
@@ -405,7 +428,7 @@ namespace gradc {
 
         // first calculate output shape. Then calculate temporary values that allow operations
         for (const int64_t ax : positive_red_axes) {
-            result_vol *= temp_shape[ax];
+            reduced_vol *= temp_shape[ax];
             temp_shape[ax] = 1; // later just copy temp as result_shape and retain/remove axes
         }
 
@@ -501,18 +524,18 @@ namespace gradc {
     }
 
     template <typename T>
-    Tensor<T> unbroadcast_grad(const Tensor<T>& raw_grad, const Tensor<T>& parent, const std::vector<int64_t>& broadcasted_shape) {
-        std::vector<int64_t> broadcasted_axes = find_broadcasted_axes(broadcasted_shape, parent.m_shape);
+    Tensor<T> unbroadcast_grad(const Tensor<T>& raw_grad, const Tensor<T>& parent) {
+        std::vector<int64_t> broadcasted_axes = find_broadcasted_axes(raw_grad.m_shape, parent.m_shape);
 
         if (broadcasted_axes.empty()) {
             return raw_grad;
         }
 
-        ReductionMetadata red_meta = infer_reduction_metadata(broadcasted_shape, broadcasted_axes, false);
+        ReductionMetadata red_meta = infer_reduction_metadata(raw_grad.m_shape, broadcasted_axes, false);
         Tensor<T> reduced = apply_reduction_operation(raw_grad, red_meta, T(), [](T a, T b){return a + b;});
 
-        return Tensor<T>(parent.m_shape, parent.m_strides, 0, std::move(reduced.m_state->m_storage), false);
-        // We keepdims=false so [2, 1] broadcasted into [2, 5] turns into [2]. To fix that, we just use the same shape/strides as the original (parent).
+        return Tensor<T>(parent.m_shape, std::move(reduced.m_state->m_storage)); // contiguous tensor (strides must be generated and shape must be kept as the one of parent)
+        // We keepdims=false so [2, 1] broadcasted into [2, 5] turns into [2]. To fix that, we just use the same shape as the original (parent).
         // It works because reduction operation return a contiguous tensor.
     }
 
