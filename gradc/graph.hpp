@@ -148,7 +148,7 @@ namespace gradc {
             }
 
             void backward(const Tensor<T>& out_grad) {
-
+                m_parent.accumulate_grad(out_grad); // literally just copy over
             }
     };
 
@@ -163,18 +163,30 @@ namespace gradc {
                 m_parent.realize();
                 return lobotomized_contiguous(m_parent);
             }
+
+            void backward(const Tensor<T>& out_grad) {
+                m_parent.accumulate_grad(out_grad);
+            }
     }; 
 
     template <typename T>
     class TransposeNode: public Node<T> {
         private: 
             Tensor<T> m_parent;
+            int64_t m_dim0;
+            int64_t m_dim1;
+
         public:
-            TransposeNode(Tensor<T> parent) : m_parent(std::move(parent)) {}
+            TransposeNode(Tensor<T> parent, int64_t dim0, int64_t dim1) : m_parent(std::move(parent)), m_dim0(dim0), m_dim1(dim1) {}
 
             Tensor<T> realize() override {
                 m_parent.realize();
                 return m_parent;
+            }
+
+            void backward(const Tensor<T>& out_grad) {
+                Tensor<T> transposed_grad = lobotomized_transpose(out_grad, m_dim0,  m_dim1);
+                m_parent.accumulate_grad(transposed_grad);
             }
     };
 
@@ -187,7 +199,7 @@ namespace gradc {
 
             Tensor<T> realize() override {
                 m_parent.realize();
-                return m_parent; 
+                return m_parent;
             }
     };
 
@@ -208,9 +220,9 @@ namespace gradc {
     class SliceNode: public Node<T> {
         private: 
             Tensor<T> m_parent;
-            std::vector<IndexDesc> m_slice_info;
+            std::vector<IndexDesc> m_descriptors;
         public:
-            SliceNode(Tensor<T> parent, std::vector<IndexDesc> slice_info) : m_parent(std::move(parent)), m_slice_info(std::move(slice_info)) {}
+            SliceNode(Tensor<T> parent, std::vector<IndexDesc> descriptors) : m_parent(std::move(parent)), m_descriptors(std::move(descriptors)) {}
 
             Tensor<T> realize() override {
                 m_parent.realize();
@@ -218,9 +230,13 @@ namespace gradc {
             }
 
             void backward(const Tensor<T>& out_grad) {
-                Tensor<T> full_grad = Tensor<T>(m_parent.m_shape, T());
-
-            }
+                Tensor<T> full_grad = Tensor<T>(m_parent.m_shape, T()); // Incoming grad is [5, 32] but the parent is [5, 10, 32]. 
+                // You add dimension back for the temporary tensor (filled with 0s).
+                Tensor<T> grad_view = full_grad.create_lobotomized_slice_view(m_descriptors);
+                apply_in_place(grad_view, out_grad, [](T& a, T b){a = b;}); // grad_view and out_grad have the same dimensions.
+                // grad_view has buffer of full_grad that matches shape of m_parent, so in-place assignment actually edits full_grad.
+                m_parent.accumulate_grad(full_grad);
+            } 
     };
 
     template <typename InT, typename OutT>

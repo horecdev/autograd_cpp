@@ -134,28 +134,7 @@ namespace gradc {
         return new_contiguous;
     }
 
-    template <typename T> 
-    Tensor<T>::create_slice_view(const std::vector<IndexDesc>& descriptors) {
-        std::vector<int64_t> new_shape;
-        std::vector<int64_t> new_strides;
-        int64_t new_offset = m_offset;
-        new_shape.reserve(sizeof...(args)); // max amount of elements reserved upfront (evades dynamic reallocations)
-        new_strides.reserve(sizeof...(args));
-        for (int i = 0; i < sizeof...(args); ++i) {
-            if (descriptors[i].m_is_all) {
-                new_shape.push_back(m_shape[i]); // worked it out on paper
-                new_strides.push_back(m_strides[i]);   
-            }
-            else {
-                int64_t coord = descriptors[i].m_value;
-                coord = normalize_axis(coord, m_shape[i]);
-                new_offset += coord * m_strides[i];
-            }
-        }
-        Tensor<T> result = Tensor(std::move(new_shape), std::move(new_strides), new_offset, m_state->m_storage, m_requires_grad);
-        result.m_state->m_creation_op = std::make_unique<SliceNode<T>>(*this);
-        return result;
-    }
+
 
     template <typename T, typename Func>
     void apply_in_place(Tensor<T>& left, const Tensor<T>& right, Func op) { 
@@ -565,5 +544,32 @@ namespace gradc {
         return std::make_pair(std::move(p_left), std::move(p_right));
     }
 
+    template <typename T>
+    bool Tensor<T>::is_contiguous() const {
+        if (m_shape.empty()) return true;
+        if (m_strides[std::ssize(m_strides) - 1] != 1) {
+            return false;
+        }
+        for (int64_t i = std::ssize(m_shape) - 1; i > 0; --i) {
+            if (m_strides[i - 1] != m_shape[i] * m_strides[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
 
+    template <typename T>
+    Tensor<T> lobotomized_transpose(const Tensor<T>& source, int64_t dim0, int64_t dim1) {
+        const int64_t n_dim = std::ssize(source.m_shape);
+        dim0 = normalize_axis(dim0, n_dim);
+        dim1 = normalize_axis(dim1, n_dim);
+
+        std::vector<int64_t> new_shape = source.m_shape;
+        std::vector<int64_t> new_strides = source.m_strides;
+        std::swap(new_shape[dim0], new_shape[dim1]);
+        std::swap(new_strides[dim0], new_strides[dim1]);
+
+        Tensor result = Tensor(std::move(new_shape), std::move(new_strides), source.m_offset, source.m_state->m_storage, false);
+        return result;
+    }
 }

@@ -14,13 +14,18 @@
 namespace gradc {
 
     template <typename T> 
-    Tensor<T> Tensor<T>::create_slice_view(const std::vector<IndexDesc>& descriptors) {
+    Tensor<T> Tensor<T>::create_lobotomized_slice_view(const std::vector<IndexDesc>& descriptors) {
+        const int64_t n_dims = std::ssize(descriptors);
+        if (n_dims != std::ssize(m_shape)) {
+            throw std::out_of_range("Coordinate count does not match tensor dimensions.");
+        }
         std::vector<int64_t> new_shape;
         std::vector<int64_t> new_strides;
         int64_t new_offset = m_offset;
-        new_shape.reserve(sizeof...(args)); // max amount of elements reserved upfront (evades dynamic reallocations)
-        new_strides.reserve(sizeof...(args));
-        for (int i = 0; i < sizeof...(args); ++i) {
+        new_shape.reserve(n_dims); // max amount of elements reserved upfront (evades dynamic reallocations)
+        new_strides.reserve(n_dims);
+
+        for (int i = 0; i < n_dims; ++i) {
             if (descriptors[i].m_is_all) {
                 new_shape.push_back(m_shape[i]); // worked it out on paper
                 new_strides.push_back(m_strides[i]);   
@@ -31,8 +36,8 @@ namespace gradc {
                 new_offset += coord * m_strides[i];
             }
         }
-        Tensor<T> result = Tensor(std::move(new_shape), std::move(new_strides), new_offset, m_state->m_storage, m_requires_grad);
-        result.m_state->m_creation_op = std::make_unique<SliceNode<T>>(*this);
+        Tensor<T> result = Tensor(std::move(new_shape), std::move(new_strides), new_offset, m_state->m_storage, false);
+        
         return result;
     }
 
@@ -45,25 +50,14 @@ namespace gradc {
             throw std::out_of_range("Coordinate count does not match tensor dimensions.");
         }
 
-        std::array<IndexDesc, sizeof...(args)> descriptors = {IndexDesc(args)...}; // when you do [expression(args)...] it means: apply expression to every arg, and separate it with comas.
-        std::vector<int64_t> new_shape;
-        std::vector<int64_t> new_strides;
-        int64_t new_offset = m_offset;
-        new_shape.reserve(sizeof...(args)); // max amount of elements reserved upfront (evades dynamic reallocations)
-        new_strides.reserve(sizeof...(args));
-        for (int i = 0; i < sizeof...(args); ++i) {
-            if (descriptors[i].m_is_all) {
-                new_shape.push_back(m_shape[i]); // worked it out on paper
-                new_strides.push_back(m_strides[i]);   
-            }
-            else {
-                int64_t coord = descriptors[i].m_value;
-                coord = normalize_axis(coord, m_shape[i]);
-                new_offset += coord * m_strides[i];
-            }
-        }
-        Tensor<T> result = Tensor(std::move(new_shape), std::move(new_strides), new_offset, m_state->m_storage, m_requires_grad);
-        result.m_state->m_creation_op = std::make_unique<SliceNode<T>>(*this);
+        std::array<IndexDesc, sizeof...(args)> arr = {IndexDesc(args)...}; // when you do [expression(args)...] it means: apply expression to every arg, and separate it with comas.
+        std::vector<IndexDesc> descriptors(arr.begin(), arr.end());
+
+        Tensor<T> result = this->create_lobotomized_slice_view(descriptors);
+
+        result.m_requires_grad = m_requires_grad;
+        result.m_state->m_creation_op = std::make_unique<SliceNode<T>>(*this, descriptors);
+
         return result;
     }
 

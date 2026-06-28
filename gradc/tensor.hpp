@@ -197,7 +197,7 @@ namespace gradc {
             Tensor clone() const;
 
             // INDEXING
-            Tensor create_slice_view(const std::vector<IndexDesc>& descriptors);
+            Tensor create_lobotomized_slice_view(const std::vector<IndexDesc>& descriptors);
             template <typename... Args>
             Tensor operator[](Args... args) const;
 
@@ -266,6 +266,8 @@ namespace gradc {
             // UTILS
             template <typename U> friend Tensor<U> lobotomized_broadcast(const Tensor<U>& source, const std::vector<int64_t>& target_shape);
             template <typename U> friend Tensor<U> lobotomized_contiguous(const Tensor<U>& source);
+            template <typename U> friend Tensor<U> lobotomized_transpose(const Tensor<U>& source, int64_t dim0, int64_t dim1);
+            template <typename U> friend Tensor<U> lobotomized_reshape(const Tensor<U>& source);
 
             template <typename U> friend std::ostream& print_tensor(std::ostream& stream, const Tensor<U>& source, PrintOptions opts);
             template <typename U> friend void print_dim(std::ostream& stream, const Tensor<U>& source, const PrintOptions& opts, int64_t current_dim, int64_t base_offset, bool is_last);

@@ -11,19 +11,6 @@
 #include <vector>
 
 namespace gradc {
-    template <typename T>
-    bool Tensor<T>::is_contiguous() const {
-        if (m_shape.empty()) return true;
-        if (m_strides[std::ssize(m_strides) - 1] != 1) {
-            return false;
-        }
-        for (int64_t i = std::ssize(m_shape) - 1; i > 0; --i) {
-            if (m_strides[i - 1] != m_shape[i] * m_strides[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
     
     template <typename T>
     Tensor<T> Tensor<T>::contiguous() const {
@@ -35,17 +22,9 @@ namespace gradc {
 
     template <typename T>
     Tensor<T> Tensor<T>::transpose(int64_t dim0, int64_t dim1) const {
-        const int64_t n_dim = std::ssize(m_shape);
-        dim0 = normalize_axis(dim0, n_dim);
-        dim1 = normalize_axis(dim1, n_dim);
-
-        std::vector<int64_t> new_shape = m_shape;
-        std::vector<int64_t> new_strides = m_strides;
-        std::swap(new_shape[dim0], new_shape[dim1]);
-        std::swap(new_strides[dim0], new_strides[dim1]);
-
-        Tensor result = Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_state->m_storage, m_requires_grad);
-        result.m_state->m_creation_op = std::make_unique<TransposeNode<T>>(*this); 
+        Tensor<T> result = lobotomized_transpose(*this, dim0, dim1);
+        result.m_requires_grad = m_requires_grad;
+        result.m_state->m_creation_op = std::make_unique<TransposeNode<T>>(*this, dim0, dim1); 
         return result;
     }
 
