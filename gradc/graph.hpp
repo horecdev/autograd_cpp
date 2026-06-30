@@ -17,7 +17,7 @@ namespace gradc {
         public:
             AddNode<T>(Tensor<T> left, Tensor<T> right, std::vector<int64_t> target_shape) : m_left(std::move(left)), m_right(std::move(right)), m_target_shape(std::move(target_shape)) {}
             
-            Tensor<T> realize() override {
+            Tensor<T> realize() const override {
                 m_left.realize();
                 m_right.realize();
                 return apply_out_of_place(m_left, m_right, m_target_shape, [](T a, T b) {return a + b;});
@@ -42,7 +42,7 @@ namespace gradc {
         public:
             MulNode<T>(Tensor<T> left, Tensor<T> right, std::vector<int64_t> target_shape) : m_left(std::move(left)), m_right(std::move(right)), m_target_shape(std::move(target_shape)) {}
             
-            Tensor<T> realize() override {
+            Tensor<T> realize() const override {
                 m_left.realize();
                 m_right.realize();
                 return apply_out_of_place(m_left, m_right, m_target_shape, [](T a, T b) {return a * b;});
@@ -102,12 +102,12 @@ namespace gradc {
         public:
             SumNode(Tensor<T> parent, ReductionMetadata reduction_metadata) : m_parent(parent), m_reduction_metadata(reduction_metadata) {}
 
-            Tensor<T> realize() override {
+            Tensor<T> realize() const override {
                 m_parent.realize();
                 return apply_reduction_operation(m_parent, m_reduction_metadata, T(), [](T a, T b){return a + b;});
             }
 
-            void backward(const Tensor<T>& out_grad) override {
+            void backward(const Tensor<T>& out_grad) const override {
                 m_parent.accumulate_grad(Tensor<T>(m_parent.m_shape, m_reduction_metadata.temp_strides, 0, out_grad.m_state->m_storage, false));
             }
     };
@@ -120,14 +120,14 @@ namespace gradc {
         public:
             MeanNode(Tensor<T> parent, ReductionMetadata reduction_metadata) : m_parent(parent), m_reduction_metadata(reduction_metadata) {}
 
-            Tensor<T> realize() override {
+            Tensor<T> realize() const override {
                 m_parent.realize();
                 Tensor<T> summed = apply_reduction_operation(m_parent, m_reduction_metadata, T(), [](T a, T b){return a + b;});
                 apply_in_place(summed, Tensor<T>(static_cast<T>(m_reduction_metadata.reduced_vol)), [](T& a, T b){a /= b;});
                 return summed;
             }
 
-            void backward(const Tensor<T>& out_grad) {
+            void backward(const Tensor<T>& out_grad) const override {
                 Tensor<T> divided_grad = apply_out_of_place(out_grad, Tensor<T>(static_cast<T>(m_reduction_metadata.reduced_vol)), out_grad.m_shape, [](T a, T b){return a / b;});
                 Tensor<T> strided_mean_grad = Tensor<T>(m_parent.m_shape, m_reduction_metadata.temp_strides, 0, divided_grad.m_state->m_storage, false);
                 m_parent.accumulate_grad(strided_mean_grad);
@@ -142,12 +142,12 @@ namespace gradc {
         public:
             CloneNode(Tensor<T> parent) : m_parent(std::move(parent)) {}
 
-            Tensor<T> realize() override {
+            Tensor<T> realize() const override {
                 m_parent.realize();
                 return lobotomized_contiguous(m_parent); // does not copy whole data for a slice
             }
 
-            void backward(const Tensor<T>& out_grad) {
+            void backward(const Tensor<T>& out_grad) const override {
                 m_parent.accumulate_grad(out_grad); // literally just copy over
             }
     };
@@ -159,12 +159,12 @@ namespace gradc {
         public:
             ContiguousNode(Tensor<T> parent) : m_parent(std::move(parent)) {}
 
-            Tensor<T> realize() override {
+            Tensor<T> realize() const override {
                 m_parent.realize();
                 return lobotomized_contiguous(m_parent);
             }
 
-            void backward(const Tensor<T>& out_grad) {
+            void backward(const Tensor<T>& out_grad) const override {
                 m_parent.accumulate_grad(out_grad);
             }
     }; 
@@ -179,12 +179,12 @@ namespace gradc {
         public:
             TransposeNode(Tensor<T> parent, int64_t dim0, int64_t dim1) : m_parent(std::move(parent)), m_dim0(dim0), m_dim1(dim1) {}
 
-            Tensor<T> realize() override {
+            Tensor<T> realize() const override {
                 m_parent.realize();
                 return m_parent;
             }
 
-            void backward(const Tensor<T>& out_grad) {
+            void backward(const Tensor<T>& out_grad) const override {
                 Tensor<T> transposed_grad = lobotomized_transpose(out_grad, m_dim0,  m_dim1);
                 m_parent.accumulate_grad(transposed_grad);
             }
@@ -197,9 +197,13 @@ namespace gradc {
         public:
             ReshapeNode(Tensor<T> parent) : m_parent(std::move(parent)) {}
 
-            Tensor<T> realize() override {
+            Tensor<T> realize() const override {
                 m_parent.realize();
                 return m_parent;
+            }
+
+            void backward(const Tensor<T>& out_grad) const override {
+            
             }
     };
 

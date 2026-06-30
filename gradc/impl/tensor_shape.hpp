@@ -23,8 +23,8 @@ namespace gradc {
     template <typename T>
     Tensor<T> Tensor<T>::transpose(int64_t dim0, int64_t dim1) const {
         Tensor<T> result = lobotomized_transpose(*this, dim0, dim1);
-        result.m_requires_grad = m_requires_grad;
         result.m_state->m_creation_op = std::make_unique<TransposeNode<T>>(*this, dim0, dim1); 
+        result.m_requires_grad = m_requires_grad;
         return result;
     }
 
@@ -55,56 +55,20 @@ namespace gradc {
 
     template <typename T>
     Tensor<T> Tensor<T>::reshape(const std::vector<int64_t>& target_shape) const {
-        std::vector<int64_t> new_shape = std::vector<int64_t>(std::ssize(target_shape));
-        std::vector<int64_t> new_strides = std::vector<int64_t>(std::ssize(target_shape));
-        int64_t total_volume = 1;
-        int64_t running_volume = 1;
-        int64_t neg_one_idx = -1;
-
-        for (int64_t i = 0; i < std::ssize(m_shape); ++i) {
-            total_volume *= m_shape[i];
-        }
-        
-        for (int64_t i = 0; i < std::ssize(target_shape); ++i) {
-            if (target_shape[i] == -1 && neg_one_idx == -1) {
-                neg_one_idx = i;
-            }
-            else if (target_shape[i] == -1 && neg_one_idx != -1) {
-                throw std::runtime_error("Cannot .reshape() with two or more unknown dimensions.");
-            }
-            else {
-                new_shape[i] = target_shape[i];
-                running_volume *= target_shape[i];
-            }
-        }
-
-        int64_t unknown_dim;
-        if (total_volume % running_volume != 0) {
-            throw std::runtime_error("Invalid reshape parameters.");
-        }
-        else {
-            unknown_dim = total_volume / running_volume;
-        }
-
-        if (neg_one_idx != -1) {
-            new_shape[neg_one_idx] = unknown_dim;
-        }
-
-        new_strides[std::ssize(target_shape) - 1] = 1;
-        for (int64_t i = std::ssize(target_shape) - 1; i > 0; --i) {
-            new_strides[i - 1] = new_shape[i] * new_strides[i];
-        }
-
         if (this->is_contiguous()) {
-            Tensor result = Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_state->m_storage, m_requires_grad);
-            result.m_state->m_creation_op = std::make_unique<ReshapeNode<T>>(*this);
-            return result;
+            Tensor<T> reshaped = lobotomized_reshape(*this, target_shape);
+            reshaped.m_state->m_creation_op = std::make_unique<ReshapeNode<T>>(*this);
+            reshaped.m_requires_grad = m_requires_grad;
+            return reshaped;
         }
         else {
-            Tensor contiguous_tensor = this->contiguous();
-            Tensor result = Tensor(std::move(new_shape), std::move(new_strides), 0, contiguous_tensor.m_state->m_storage, m_requires_grad);
-            result.m_state->m_creation_op = std::make_unique<ReshapeNode<T>>(std::move(contiguous_tensor));
-            return result;
+            Tensor<T> new_contig = lobotomized_contiguous(*this);
+            new_contig.m_state->m_creation_op = std::make_unique<ContiguousNode<T>>(*this);
+            new_contig.m_requires_grad = m_requires_grad;
+            Tensor<T> reshaped = lobotomized_reshape(new_contig, target_shape);
+            reshaped.m_state->m_creation_op = std::make_unique<ReshapeNode<T>>(new_contig);
+            reshaped.m_requires_grad = new_contig.m_requires_grad;
+            return reshaped;
         }
     }
 }

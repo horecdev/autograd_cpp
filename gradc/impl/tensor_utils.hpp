@@ -569,7 +569,54 @@ namespace gradc {
         std::swap(new_shape[dim0], new_shape[dim1]);
         std::swap(new_strides[dim0], new_strides[dim1]);
 
-        Tensor result = Tensor(std::move(new_shape), std::move(new_strides), source.m_offset, source.m_state->m_storage, false);
+        Tensor<T> result = Tensor<T>(std::move(new_shape), std::move(new_strides), source.m_offset, source.m_state->m_storage, false);
         return result;
+    }
+
+    template <typename T>
+    Tensor<T> lobotomized_reshape(const Tensor<T>& source, const std::vector<int64_t>& target_shape) {
+        std::vector<int64_t> new_shape = std::vector<int64_t>(std::ssize(target_shape));
+        std::vector<int64_t> new_strides = std::vector<int64_t>(std::ssize(target_shape));
+        int64_t running_volume = 1;
+        int64_t neg_one_idx = -1;
+
+        int64_t total_volume = source.volume();
+        
+        for (int64_t i = 0; i < std::ssize(target_shape); ++i) {
+            if (target_shape[i] == -1 && neg_one_idx == -1) {
+                neg_one_idx = i;
+            }
+            else if (target_shape[i] == -1 && neg_one_idx != -1) {
+                throw std::runtime_error("Cannot .reshape() with two or more unknown dimensions.");
+            }
+            else {
+                new_shape[i] = target_shape[i];
+                running_volume *= target_shape[i];
+            }
+        }
+
+        int64_t unknown_dim;
+        if (total_volume % running_volume != 0) {
+            throw std::runtime_error("Invalid reshape parameters.");
+        }
+        else {
+            unknown_dim = total_volume / running_volume;
+        }
+
+        if (neg_one_idx != -1) {
+            new_shape[neg_one_idx] = unknown_dim;
+        }
+
+        new_strides[std::ssize(target_shape) - 1] = 1;
+        for (int64_t i = std::ssize(target_shape) - 1; i > 0; --i) {
+            new_strides[i - 1] = new_shape[i] * new_strides[i];
+        }
+
+        if (source.is_contiguous()) {
+            return Tensor<T>(std::move(new_shape), std::move(new_strides), source.m_offset, source.m_state->m_storage, false);
+        }
+        else {
+            throw std::runtime_error("lobotomized_reshape invoked on a non-contiguous tensor.");
+        }
     }
 }
