@@ -136,19 +136,19 @@ namespace gradc {
 
 
 
-    template <typename T, typename Func>
-    void apply_in_place(Tensor<T>& left, const Tensor<T>& right, Func op) { 
+    template <typename T1, typename T2, typename Func> // two types so you can cast one to another in lambda
+    void apply_in_place(Tensor<T1>& left, const Tensor<T2>& right, Func op) { 
         if (left.m_shape.empty() && right.m_shape.empty()) {
             op(left.m_state->m_storage->m_data[left.m_offset], right.m_state->m_storage->m_data[right.m_offset]);
             ++left.m_state->m_storage->m_version;
             return;
         }
-        // Idea behind all the variables - track right variables instead of copying vectors on the heap inside copied Tensors.
+        // Idea behind all the variables - track the right variables instead of copying vectors on the heap inside copied Tensors.
         // (you would have to either create a tensor or copy it to hold a variable (or worse - write main logic twice) - why not ONLY create if needed?)
         const std::vector<int64_t>* right_strides; // promise not to modify data, (can reassign the pointer)
         int64_t right_offset;
 
-        Tensor<T> broad_right;
+        Tensor<T2> broad_right;
         if (left.m_shape == right.m_shape) {
             right_strides = &right.m_strides;
             right_offset = right.m_offset;
@@ -495,15 +495,15 @@ namespace gradc {
         return result;
     }
 
-    inline std::vector<int64_t> find_broadcasted_axes(const std::vector<int64_t>& broadcasted_shape, const std::vector<int64_t>& initial_shape) {
+    inline std::vector<int64_t> find_broadcast_axes(const std::vector<int64_t>& broadcast_shape, const std::vector<int64_t>& initial_shape) {
         std::vector<int64_t> found_axes;
-        found_axes.reserve(std::ssize(broadcasted_shape));
-        for (int64_t i = 0; i < std::ssize(broadcasted_shape) - std::ssize(initial_shape); ++i) {
+        found_axes.reserve(std::ssize(broadcast_shape));
+        for (int64_t i = 0; i < std::ssize(broadcast_shape) - std::ssize(initial_shape); ++i) {
             found_axes.push_back(i);
         }
         for (int64_t init_idx = 0; init_idx < std::ssize(initial_shape); ++init_idx) {
-            int64_t res_idx = init_idx + std::ssize(broadcasted_shape) - std::ssize(initial_shape);
-            if (broadcasted_shape[res_idx] != initial_shape[init_idx]) {
+            int64_t res_idx = init_idx + std::ssize(broadcast_shape) - std::ssize(initial_shape);
+            if (broadcast_shape[res_idx] != initial_shape[init_idx]) {
                 found_axes.push_back(res_idx);
             }
         }
@@ -513,17 +513,17 @@ namespace gradc {
 
     template <typename T>
     Tensor<T> unbroadcast_grad(const Tensor<T>& raw_grad, const Tensor<T>& parent) {
-        std::vector<int64_t> broadcasted_axes = find_broadcasted_axes(raw_grad.m_shape, parent.m_shape);
+        std::vector<int64_t> broadcast_axes = find_broadcast_axes(raw_grad.m_shape, parent.m_shape);
 
-        if (broadcasted_axes.empty()) {
+        if (broadcast_axes.empty()) {
             return raw_grad;
         }
 
-        ReductionMetadata red_meta = infer_reduction_metadata(raw_grad.m_shape, broadcasted_axes, false);
+        ReductionMetadata red_meta = infer_reduction_metadata(raw_grad.m_shape, broadcast_axes, false);
         Tensor<T> reduced = apply_reduction_operation(raw_grad, red_meta, T(), [](T a, T b){return a + b;});
 
         return Tensor<T>(parent.m_shape, std::move(reduced.m_state->m_storage)); // contiguous tensor (strides must be generated and shape must be kept as the one of parent)
-        // We keepdims=false so [2, 1] broadcasted into [2, 5] turns into [2]. To fix that, we just use the same shape as the original (parent).
+        // We keepdims=false so [2, 1] broadcast into [2, 5] turns into [2]. To fix that, we just use the same shape as the original (parent).
         // It works because reduction operation return a contiguous tensor.
     }
 
@@ -651,5 +651,14 @@ namespace gradc {
         }
 
         return Tensor<T>(std::move(new_shape), std::move(new_strides), source.m_offset, source.m_state->m_storage, false);
+    }
+
+    template <typename InT, typename OutT>
+    Tensor<OutT> lobotomized_cast(const Tensor<InT>& source) {
+        // source can have weird strides, but result is contiguous
+        Tensor<OutT> result = Tensor<OutT>(source.m_shape);
+        apply_in_place(result, source, [](OutT& a, InT b){a = static_cast<OutT>(b);});
+
+        return result;
     }
 }

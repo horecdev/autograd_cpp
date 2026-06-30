@@ -245,7 +245,7 @@ namespace gradc {
             Tensor transpose(const int64_t dim0, const int64_t dim1) const;
             Tensor permute(const std::vector<int64_t>& axes) const;
             Tensor reshape(const std::vector<int64_t>& target_shape) const;
-
+            
             // MATH
             template <typename U, typename Func> friend void apply_in_place(Tensor<U>& left, const Tensor<U>& right, Func op);
             template <typename U, typename Func> friend Tensor<U> apply_out_of_place(const Tensor<U>& left, const Tensor<U>& right, const std::vector<int64_t>& target_shape, Func op);
@@ -269,6 +269,7 @@ namespace gradc {
             template <typename U> friend Tensor<U> lobotomized_transpose(const Tensor<U>& source, int64_t dim0, int64_t dim1);
             template <typename U> friend Tensor<U> lobotomized_reshape(const Tensor<U>& source);
             template <typename U> friend Tensor<U> lobotomized_permute(const Tensor<T>& source, const std::vector<int64_t>& axes);
+            template <typename InT, typename OutT> friend Tensor<OutT> lobotomized_cast(const Tensor<InT>& source);
 
             template <typename U> friend std::ostream& print_tensor(std::ostream& stream, const Tensor<U>& source, PrintOptions opts);
             template <typename U> friend void print_dim(std::ostream& stream, const Tensor<U>& source, const PrintOptions& opts, int64_t current_dim, int64_t base_offset, bool is_last);

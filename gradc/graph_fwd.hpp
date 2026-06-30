@@ -14,4 +14,5 @@ namespace gradc {
     template <typename T> class SumNode;
     template <typename T> class MeanNode;
     template <typename InT, typename OutT> class CastNode;
+    template <typename T> class ConcatNode;
 }

@@ -4,6 +4,7 @@
 #include "tensor.hpp"
 #include "impl/tensor_utils.hpp"
 
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -228,12 +229,11 @@ namespace gradc {
                 std::vector<int64_t> normalized_axes = normalize_axes_vector(m_axes, n_dim);
                 std::vector<int64_t> backward_axes(n_dim, -1);
                 for (int64_t i = 0; i < n_dim; ++i) {
-                    for (int64_t j = 0; j < n_dim; ++j) {
-                        if (m_axes[j] == i) {
-                            backward_axes[i] = j; // worked the algo out on paper
-                        }
-                    }
+                    backward_axes[normalized_axes[i]] = i; // if 0 went to 2, then 2 goes to 0
                 }
+
+                Tensor<T> permuted_grad = lobotomized_permute(out_grad, backward_axes);
+                m_parent.accumulate_grad(permuted_grad);
             }
     };
 
@@ -245,12 +245,12 @@ namespace gradc {
         public:
             SliceNode(Tensor<T> parent, std::vector<IndexDesc> descriptors) : m_parent(std::move(parent)), m_descriptors(std::move(descriptors)) {}
 
-            Tensor<T> realize() override {
+            Tensor<T> realize() const override {
                 m_parent.realize();
                 return m_parent;
             }
 
-            void backward(const Tensor<T>& out_grad) {
+            void backward(const Tensor<T>& out_grad) const override {
                 Tensor<T> full_grad = Tensor<T>(m_parent.m_shape, T()); // Incoming grad is [5, 32] but the parent is [5, 10, 32]. 
                 // You add dimension back for the temporary tensor (filled with 0s).
                 Tensor<T> grad_view = full_grad.create_lobotomized_slice_view(m_descriptors);
@@ -267,17 +267,46 @@ namespace gradc {
         public:
             CastNode(Tensor<InT> parent) : m_parent(std::move(parent)) {}
 
-            Tensor<OutT> realize() { // TODO: Move somewhere else (dont do math inside castnode)
+            Tensor<OutT> realize() const override {
                 m_parent.realize();
-                Tensor<OutT> result = Tensor<OutT>(m_parent.shape());
-                std::shared_ptr<TensorState<InT>> parent_state = this->get_state(m_parent);
-                std::shared_ptr<TensorState<OutT>> result_state = this->get_state(result);
-                for (int64_t i = 0; i < m_parent.volume(); ++i) {
-                    (result_state->m_storage->m_data)[i] = static_cast<OutT>((parent_state->m_storage->m_data)[i]);
-                }
-
+                Tensor<OutT> result = lobotomized_cast<InT, OutT>(m_parent);
                 return result;
             }
 
+            void backward(const Tensor<OutT>& out_grad) const override {
+                Tensor<InT> cast_grad = lobotomized_cast<OutT, InT>(out_grad);
+                m_parent.accumulate_grad(cast_grad);
+            }
     };
+
+    template <typename T>
+    class ConcatNode : public Node<T> {
+        private:
+            std::vector<Tensor<T>> m_parents_list;
+            int64_t m_concat_dim;
+        public:
+            ConcatNode(std::vector<Tensor<T>> parents_list, int64_t concat_dim) : m_parents_list(std::move(parents_list)), m_concat_dim(concat_dim) {}
+
+            Tensor<T> realize() const override {
+                for (Tensor<T>& parent : m_parents_list) {
+                    parent.realize();
+                }
+
+                const int64_t n_dim = std::ssize(m_parents_list[0].m_shape);
+                std::vector<int64_t> final_shape = m_parents_list[0].m_shape;
+                final_shape[m_concat_dim] = 0;
+
+                for (const Tensor<T>& parent : m_parents_list) {
+                    if (std::ssize(parent.m_shape) != n_dim) {
+                        throw std::runtime_error("Error during concat operation: ");
+                    }
+                    for (int64_t i = 0; i < n_dim; ++i) {
+
+                    }
+                }
+
+            }
+    };
+
+
 }

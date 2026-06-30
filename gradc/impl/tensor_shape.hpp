@@ -6,8 +6,6 @@
 
 #include <cstdint>
 #include <memory>
-#include <stdexcept>
-#include <utility>
 #include <vector>
 
 namespace gradc {
@@ -45,13 +43,16 @@ namespace gradc {
             return reshaped;
         }
         else {
-            Tensor<T> new_contig = lobotomized_contiguous(*this);
-            new_contig.m_state->m_creation_op = std::make_unique<ContiguousNode<T>>(*this);
-            new_contig.m_requires_grad = m_requires_grad;
+            Tensor<T> new_contig = this->contiguous();
             Tensor<T> reshaped = lobotomized_reshape(new_contig, target_shape);
             reshaped.m_state->m_creation_op = std::make_unique<ReshapeNode<T>>(new_contig);
             reshaped.m_requires_grad = new_contig.m_requires_grad;
             return reshaped;
         }
+    }
+
+    template <typename T>
+    Tensor<T> concat(std::vector<Tensor<T>>& tensor_list, int64_t concat_dim) {
+        
     }
 }
