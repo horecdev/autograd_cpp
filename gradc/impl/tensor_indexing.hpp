@@ -15,17 +15,17 @@ namespace gradc {
 
     template <typename T> 
     Tensor<T> Tensor<T>::create_lobotomized_slice_view(const std::vector<IndexDesc>& descriptors) {
-        const int64_t n_dims = std::ssize(descriptors);
-        if (n_dims != std::ssize(m_shape)) {
+        const int64_t n_dim = std::ssize(descriptors);
+        if (n_dim != std::ssize(m_shape)) {
             throw std::out_of_range("Coordinate count does not match tensor dimensions.");
         }
         std::vector<int64_t> new_shape;
         std::vector<int64_t> new_strides;
         int64_t new_offset = m_offset;
-        new_shape.reserve(n_dims); // max amount of elements reserved upfront (evades dynamic reallocations)
-        new_strides.reserve(n_dims);
+        new_shape.reserve(n_dim); // max amount of elements reserved upfront (evades dynamic reallocations)
+        new_strides.reserve(n_dim);
 
-        for (int i = 0; i < n_dims; ++i) {
+        for (int i = 0; i < n_dim; ++i) {
             if (descriptors[i].m_is_all) {
                 new_shape.push_back(m_shape[i]); // worked it out on paper
                 new_strides.push_back(m_strides[i]);   

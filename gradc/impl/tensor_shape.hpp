@@ -30,27 +30,10 @@ namespace gradc {
 
     template <typename T>
     Tensor<T> Tensor<T>::permute(const std::vector<int64_t>& axes) const {
-        const int64_t n_dim = std::ssize(m_shape);
-        if (std::ssize(axes) != n_dim) {
-            throw std::runtime_error("permute() axes list size must match shape list size.");
-        }
-        std::vector<int64_t> new_shape = std::vector<int64_t>(n_dim);
-        std::vector<int64_t> new_strides = std::vector<int64_t>(n_dim);
-        std::vector<bool> seen_axes = std::vector<bool>(n_dim, false);
-        for (int64_t target_ax = 0; target_ax < n_dim; ++target_ax) {
-            int64_t src_ax = axes[target_ax];
-            src_ax = normalize_axis(src_ax, n_dim);
-            if (seen_axes[src_ax]) {
-                throw std::runtime_error("Passed at least one axis twice inside .permute()");
-            }
-            seen_axes[src_ax] = true;
-
-            new_shape[target_ax] = m_shape[src_ax];
-            new_strides[target_ax] = m_strides[src_ax];
-        }
-        Tensor result = Tensor(std::move(new_shape), std::move(new_strides), m_offset, m_state->m_storage, m_requires_grad);
-        result.m_state->m_creation_op = std::make_unique<PermuteNode<T>>(*this);
-        return result;
+        Tensor<T> permuted = lobotomized_permute(*this, axes);
+        permuted.m_state->m_creation_op = std::make_shared<PermuteNode<T>>(*this, axes);
+        permuted.m_requires_grad = m_requires_grad;
+        return permuted;
     }
 
     template <typename T>

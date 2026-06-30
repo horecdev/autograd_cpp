@@ -203,7 +203,10 @@ namespace gradc {
             }
 
             void backward(const Tensor<T>& out_grad) const override {
-            
+                Tensor<T> reshaped_grad = out_grad;
+                reshaped_grad.m_shape = m_parent.m_shape; // parent and grad are contiguous, so can just take same strides.
+                reshaped_grad.m_strides = m_parent.m_strides;
+                m_parent.accumulate_grad(reshaped_grad);
             }
     };
 
@@ -211,12 +214,26 @@ namespace gradc {
     class PermuteNode: public Node<T> {
         private:
             Tensor<T> m_parent;
+            std::vector<int64_t> m_axes;
         public:
-            PermuteNode(Tensor<T> parent) : m_parent(std::move(parent)) {}
+            PermuteNode(Tensor<T> parent, std::vector<int64_t> axes) : m_parent(std::move(parent)), m_axes(std::move(axes)) {}
 
-            Tensor<T> realize() override {
+            Tensor<T> realize() const override {
                 m_parent.realize();
                 return m_parent;
+            }
+
+            void backward(const Tensor<T>& out_grad) const override {
+                const int64_t n_dim = std::ssize(m_parent.m_shape);
+                std::vector<int64_t> normalized_axes = normalize_axes_vector(m_axes, n_dim);
+                std::vector<int64_t> backward_axes(n_dim, -1);
+                for (int64_t i = 0; i < n_dim; ++i) {
+                    for (int64_t j = 0; j < n_dim; ++j) {
+                        if (m_axes[j] == i) {
+                            backward_axes[i] = j; // worked the algo out on paper
+                        }
+                    }
+                }
             }
     };
 

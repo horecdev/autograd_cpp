@@ -380,6 +380,15 @@ namespace gradc {
         return axis;
     }
 
+    inline std::vector<int64_t> normalize_axes_vector(const std::vector<int64_t>& axes, int64_t n_dim) {
+        std::vector<int64_t> normalized_axes = std::vector<int64_t>(std::ssize(axes), -1);
+        for (int64_t i = 0; i < n_dim; ++i) {
+            normalized_axes[i] = normalize_axis(axes[i], n_dim);
+        }
+
+        return normalized_axes;
+    }
+
     inline int64_t calculate_dim_product(const std::vector<int64_t>& shape) {
         int64_t dim_product = 1;
         for (int64_t i = 0; i < std::ssize(shape); ++i) {
@@ -618,5 +627,29 @@ namespace gradc {
         else {
             throw std::runtime_error("lobotomized_reshape invoked on a non-contiguous tensor.");
         }
+    }
+
+    template <typename T>
+    Tensor<T> lobotomized_permute(const Tensor<T>& source, const std::vector<int64_t>& axes) {
+        const int64_t n_dim = std::ssize(source.m_shape);
+        if (std::ssize(axes) != n_dim) {
+            throw std::runtime_error("permute() axes list size must match shape list size.");
+        }
+        std::vector<int64_t> normalized_axes = normalize_axes_vector(axes, n_dim);
+        std::vector<int64_t> new_shape = std::vector<int64_t>(n_dim);
+        std::vector<int64_t> new_strides = std::vector<int64_t>(n_dim);
+        std::vector<bool> seen_axes = std::vector<bool>(n_dim, false);
+        for (int64_t target_ax = 0; target_ax < n_dim; ++target_ax) {
+            int64_t src_ax = normalized_axes[target_ax];
+            if (seen_axes[src_ax]) {
+                throw std::runtime_error("Passed at least one axis twice inside .permute()");
+            }
+            seen_axes[src_ax] = true;
+
+            new_shape[target_ax] = source.m_shape[src_ax];
+            new_strides[target_ax] = source.m_strides[src_ax];
+        }
+
+        return Tensor<T>(std::move(new_shape), std::move(new_strides), source.m_offset, source.m_state->m_storage, false);
     }
 }
