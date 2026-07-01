@@ -1,9 +1,11 @@
 #pragma once
 
+#include "impl/tensor_indexing.hpp"
 #include "node.hpp"
 #include "tensor.hpp"
 #include "impl/tensor_utils.hpp"
 
+#include <cstdint>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -296,8 +298,26 @@ namespace gradc {
                 return lobotomized_concat_alloc(m_parents_list, m_concat_dim, m_final_shape);
             }
 
-            void backward(Tensor<T>& out_grad) override {
-                
+            void backward(const Tensor<T>& out_grad) override {
+                int64_t n_dim = std::ssize(m_final_shape);
+                int64_t concat_dim_progress = 0;
+                for (Tensor<T>& parent : m_parents_list) {
+                    std::vector<IndexDesc> descriptors;
+                    descriptors.reserve(n_dim);
+
+                    for (int64_t i = 0; i < n_dim; ++i) {
+                        if (i != m_concat_dim) {
+                            descriptors.push_back(IndexDesc(_));
+                        }
+                        else {
+                            descriptors.push_back(IndexDesc(Slice(concat_dim_progress, concat_dim_progress + parent.m_shape[m_concat_dim])));
+
+                        }
+                    }
+                    Tensor<T> grad_view = create_lobotomized_slice_view(out_grad, descriptors);
+                    parent.accumulate_grad(grad_view);
+                    concat_dim_progress += parent.m_shape[m_concat_dim];
+                }
             }
     };
 

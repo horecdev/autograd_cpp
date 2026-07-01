@@ -672,13 +672,14 @@ namespace gradc {
             std::vector<int64_t> view_shape = parent.m_shape;
 
             Tensor<T> chunk_view(std::move(view_shape), result.m_strides, current_offset, result.m_state->m_storage, false);
-            // by keeping strides it makes apply_in_place naturally skip indices for next tensor in list
+            // by keeping strides it makes apply_in_place naturally skip indices for next tensors in list
 
             apply_in_place(chunk_view, parent, [](T& a, T b){ a = b; });
 
             current_offset += parent.m_shape[concat_dim] * result.m_strides[concat_dim];
             // if you have, say, 10, 5, 7 split into [10, 2, 7] and [10, 3, 7], increase offset, then you start writing at [0, 2, 0]. You never go back to [0, 0, 0] or [0, 1, 0]
             // or anything with the concat dim less than your current progress
+            // It naturally slides the starting point to the next tensors destination. Then physically builds the tensor here, skipping over already filled place by prev tensors.
         }
 
         return result;

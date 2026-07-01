@@ -84,11 +84,11 @@ namespace gradc {
                 }
 
                 new_shape.push_back(slice_len);
-                new_strides.push_back(source.m_strides * step);
-                new_offset += start * source.m_stirdes[i];
+                new_strides.push_back(source.m_strides * step); // for neg strides just go backwards from the end. For pos just skip few elems.
+                new_offset += start * source.m_strides[i]; // for neg starting from the back of the axis (say 4:2:-1). For pos from the front.
             }
         }
-        
+
         Tensor<T> result = Tensor(std::move(new_shape), std::move(new_strides), new_offset, source.m_state->m_storage, false);
         
         return result;
