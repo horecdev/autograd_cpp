@@ -16,21 +16,33 @@ namespace gradc {
 
     // random structs that are useful
 
-    struct Placeholder{};
-    inline constexpr Placeholder _ = Placeholder(); // inline doesnt confuse linker if its #included in 2+ files.
-
     struct LazyTag{};
     inline constexpr LazyTag lazy = LazyTag();
 
+    struct Placeholder{};
+    inline constexpr Placeholder _ = Placeholder(); // inline doesnt confuse linker if its #included in 2+ files.
+
+    enum IndexType {Single, Range, All};
+
+    struct Slice {
+        std::optional<int64_t> start;
+        std::optional<int64_t> stop;
+        std::optional<int64_t> step;
+
+        Slice(std::optional<int64_t> start = std::nullopt, std::optional<int64_t> stop = std::nullopt, std::optional<int64_t> step = std::nullopt) 
+            : start(start), stop(stop), step(step) {}
+    };
+
+
+
     struct IndexDesc {
-        bool m_is_all;
-        int64_t m_value;
+        IndexType m_type;
+        int64_t m_single_val;
+        Slice m_slice_val;
 
-        IndexDesc(int64_t value)
-            :   m_value(value), m_is_all(false) {}
-
-        IndexDesc(Placeholder) 
-            : m_value(0), m_is_all(true) {}
+        IndexDesc(int64_t value) : m_type(IndexType::Single), m_single_val(value) {}
+        IndexDesc(Placeholder) : m_type(IndexType::All) {}
+        IndexDesc(Slice slice_value) : m_type(IndexType::Range), m_slice_val(std::move(slice_value)) {}
     };
 
     struct PrintOptions;
@@ -197,7 +209,6 @@ namespace gradc {
             Tensor clone() const;
 
             // INDEXING
-            Tensor create_lobotomized_slice_view(const std::vector<IndexDesc>& descriptors);
             template <typename... Args>
             Tensor operator[](Args... args) const;
 
@@ -272,6 +283,8 @@ namespace gradc {
             template <typename U> friend Tensor<U> lobotomized_reshape_view(const Tensor<U>& source);
             template <typename U> friend Tensor<U> lobotomized_permute_view(const Tensor<T>& source, const std::vector<int64_t>& axes);
             template <typename InT, typename OutT> friend Tensor<OutT> lobotomized_cast_alloc(const Tensor<InT>& source);
+            template <typename U> friend Tensor<U> create_lobotomized_slice_view(const Tensor<T>& source, const std::vector<IndexDesc>& descriptors);
+            template <typename U> friend Tensor<U> lobotomized_concat_alloc(const std::vector<Tensor<U>>& tensor_list, int64_t concat_dim, std::vector<int64_t> final_shape);
 
            
 

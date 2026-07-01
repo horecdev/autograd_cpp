@@ -297,13 +297,8 @@ namespace gradc {
             }
 
             void backward(Tensor<T>& out_grad) override {
-
+                
             }
-    };
-
-    template <typename T>
-    class SplitNode : public Node<T> {
-        
     };
 
 

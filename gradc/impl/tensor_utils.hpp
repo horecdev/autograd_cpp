@@ -663,7 +663,7 @@ namespace gradc {
     }
 
     template <typename T>
-    Tensor<T> lobotomized_concat_alloc(std::vector<Tensor<T>>& tensor_list, int64_t concat_dim, std::vector<int64_t> final_shape) {
+    Tensor<T> lobotomized_concat_alloc(const std::vector<Tensor<T>>& tensor_list, int64_t concat_dim, const std::vector<int64_t>& final_shape) {
         // target_shape must be known and concat_dim must be normalized already.
         Tensor<T> result = Tensor<T>(final_shape);
         int64_t current_offset = 0;
