@@ -1,5 +1,3 @@
-ReshapeNode backward
-DRY for bwd in reshape
-DRY for permute
-bwd for permute
-CastNode move + impl bwd pass
+ConcatNode forward pass
+ConcatNode backward pass
+SliceNode support for ranges
