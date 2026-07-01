@@ -245,6 +245,8 @@ namespace gradc {
             Tensor transpose(const int64_t dim0, const int64_t dim1) const;
             Tensor permute(const std::vector<int64_t>& axes) const;
             Tensor reshape(const std::vector<int64_t>& target_shape) const;
+
+            template <typename U> friend Tensor<T> lazy_concat(std::vector<Tensor<T>> &tensor_list, int64_t concat_dim);
             
             // MATH
             template <typename U, typename Func> friend void apply_in_place(Tensor<U>& left, const Tensor<U>& right, Func op);
@@ -264,12 +266,14 @@ namespace gradc {
             Tensor<OutT> mean(const std::vector<int64_t>& axes, bool keepdims) const;
 
             // UTILS
-            template <typename U> friend Tensor<U> lobotomized_broadcast(const Tensor<U>& source, const std::vector<int64_t>& target_shape);
-            template <typename U> friend Tensor<U> lobotomized_contiguous(const Tensor<U>& source);
-            template <typename U> friend Tensor<U> lobotomized_transpose(const Tensor<U>& source, int64_t dim0, int64_t dim1);
-            template <typename U> friend Tensor<U> lobotomized_reshape(const Tensor<U>& source);
-            template <typename U> friend Tensor<U> lobotomized_permute(const Tensor<T>& source, const std::vector<int64_t>& axes);
-            template <typename InT, typename OutT> friend Tensor<OutT> lobotomized_cast(const Tensor<InT>& source);
+            template <typename U> friend Tensor<U> lobotomized_broadcast_view(const Tensor<U>& source, const std::vector<int64_t>& target_shape);
+            template <typename U> friend Tensor<U> lobotomized_contiguous_alloc(const Tensor<U>& source);
+            template <typename U> friend Tensor<U> lobotomized_transpose_view(const Tensor<U>& source, int64_t dim0, int64_t dim1);
+            template <typename U> friend Tensor<U> lobotomized_reshape_view(const Tensor<U>& source);
+            template <typename U> friend Tensor<U> lobotomized_permute_view(const Tensor<T>& source, const std::vector<int64_t>& axes);
+            template <typename InT, typename OutT> friend Tensor<OutT> lobotomized_cast_alloc(const Tensor<InT>& source);
+
+           
 
             template <typename U> friend std::ostream& print_tensor(std::ostream& stream, const Tensor<U>& source, PrintOptions opts);
             template <typename U> friend void print_dim(std::ostream& stream, const Tensor<U>& source, const PrintOptions& opts, int64_t current_dim, int64_t base_offset, bool is_last);

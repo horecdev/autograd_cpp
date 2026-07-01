@@ -74,7 +74,7 @@ namespace gradc {
     }
 
     template <typename T>
-    Tensor<T> lobotomized_broadcast(const Tensor<T>& source, const std::vector<int64_t>& target_shape) {
+    Tensor<T> lobotomized_broadcast_view(const Tensor<T>& source, const std::vector<int64_t>& target_shape) {
         const int64_t n_dim_orig = std::ssize(source.m_shape);
         const int64_t n_dim_target = std::ssize(target_shape);
         std::vector<int64_t> new_shape = std::vector<int64_t>(n_dim_target);
@@ -99,14 +99,14 @@ namespace gradc {
                 new_strides[i] = 0;
             }
             else {
-                throw std::runtime_error("Violated broadcasting rules in lobotomized_broadcast().");
+                throw std::runtime_error("Violated broadcasting rules in lobotomized_broadcast_view().");
             }
         }
         return Tensor<T>(std::move(new_shape), std::move(new_strides), source.m_offset, source.m_state->m_storage, false); // lobotomy (no past or future)
     }
 
     template <typename T>
-    Tensor<T> lobotomized_contiguous(const Tensor<T>& source) {
+    Tensor<T> lobotomized_contiguous_alloc(const Tensor<T>& source) {
         if (source.m_shape.empty()) {
             Tensor<T> scalar_tensor = Tensor<T>(std::vector<int64_t>{});
             (scalar_tensor.m_state->m_storage->m_data)[0] = (source.m_state->m_storage->m_data)[source.m_offset];
@@ -154,7 +154,7 @@ namespace gradc {
             right_offset = right.m_offset;
         }
         else {
-            broad_right = lobotomized_broadcast(right, left.m_shape);
+            broad_right = lobotomized_broadcast_view(right, left.m_shape);
 
             right_strides = &broad_right.m_strides;
             right_offset = broad_right.m_offset;
@@ -201,13 +201,13 @@ namespace gradc {
         Tensor<T> broad_left;
 
         if (left.m_shape != target_shape) {
-            broad_left = lobotomized_broadcast(left, target_shape);
+            broad_left = lobotomized_broadcast_view(left, target_shape);
 
             left_strides = &broad_left.m_strides;
             left_offset = broad_left.m_offset;
         }
         if (right.m_shape != target_shape) {
-            broad_right = lobotomized_broadcast(right, target_shape);
+            broad_right = lobotomized_broadcast_view(right, target_shape);
 
             right_strides = &broad_right.m_strides;
             right_offset = broad_right.m_offset;
@@ -568,7 +568,7 @@ namespace gradc {
     }
 
     template <typename T>
-    Tensor<T> lobotomized_transpose(const Tensor<T>& source, int64_t dim0, int64_t dim1) {
+    Tensor<T> lobotomized_transpose_view(const Tensor<T>& source, int64_t dim0, int64_t dim1) {
         const int64_t n_dim = std::ssize(source.m_shape);
         dim0 = normalize_axis(dim0, n_dim);
         dim1 = normalize_axis(dim1, n_dim);
@@ -583,7 +583,7 @@ namespace gradc {
     }
 
     template <typename T>
-    Tensor<T> lobotomized_reshape(const Tensor<T>& source, const std::vector<int64_t>& target_shape) {
+    Tensor<T> lobotomized_reshape_view(const Tensor<T>& source, const std::vector<int64_t>& target_shape) {
         std::vector<int64_t> new_shape = std::vector<int64_t>(std::ssize(target_shape));
         std::vector<int64_t> new_strides = std::vector<int64_t>(std::ssize(target_shape));
         int64_t running_volume = 1;
@@ -625,12 +625,12 @@ namespace gradc {
             return Tensor<T>(std::move(new_shape), std::move(new_strides), source.m_offset, source.m_state->m_storage, false);
         }
         else {
-            throw std::runtime_error("lobotomized_reshape invoked on a non-contiguous tensor.");
+            throw std::runtime_error("lobotomized_reshape_view invoked on a non-contiguous tensor.");
         }
     }
 
     template <typename T>
-    Tensor<T> lobotomized_permute(const Tensor<T>& source, const std::vector<int64_t>& axes) {
+    Tensor<T> lobotomized_permute_view(const Tensor<T>& source, const std::vector<int64_t>& axes) {
         const int64_t n_dim = std::ssize(source.m_shape);
         if (std::ssize(axes) != n_dim) {
             throw std::runtime_error("permute() axes list size must match shape list size.");
@@ -654,10 +654,32 @@ namespace gradc {
     }
 
     template <typename InT, typename OutT>
-    Tensor<OutT> lobotomized_cast(const Tensor<InT>& source) {
+    Tensor<OutT> lobotomized_cast_alloc(const Tensor<InT>& source) {
         // source can have weird strides, but result is contiguous
         Tensor<OutT> result = Tensor<OutT>(source.m_shape);
         apply_in_place(result, source, [](OutT& a, InT b){a = static_cast<OutT>(b);});
+
+        return result;
+    }
+
+    template <typename T>
+    Tensor<T> lobotomized_concat_alloc(std::vector<Tensor<T>>& tensor_list, int64_t concat_dim, std::vector<int64_t> final_shape) {
+        // target_shape must be known and concat_dim must be normalized already.
+        Tensor<T> result = Tensor<T>(final_shape);
+        int64_t current_offset = 0;
+
+        for (const Tensor<T>& parent : tensor_list) {
+            std::vector<int64_t> view_shape = parent.m_shape;
+
+            Tensor<T> chunk_view(std::move(view_shape), result.m_strides, current_offset, result.m_state->m_storage, false);
+            // by keeping strides it makes apply_in_place naturally skip indices for next tensor in list
+
+            apply_in_place(chunk_view, parent, [](T& a, T b){ a = b; });
+
+            current_offset += parent.m_shape[concat_dim] * result.m_strides[concat_dim];
+            // if you have, say, 10, 5, 7 split into [10, 2, 7] and [10, 3, 7], increase offset, then you start writing at [0, 2, 0]. You never go back to [0, 0, 0] or [0, 1, 0]
+            // or anything with the concat dim less than your current progress
+        }
 
         return result;
     }

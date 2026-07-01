@@ -1,6 +1,8 @@
 DONE Toposort
-- 10 Backward passes
-- ConcatNode
+DONE 10 Backward passes
+- Rename to view and alloc
+- Check for allocs in lazy engine
+- ConcatNode + bwd pass
 - SIMD fast paths
 - AVX 32/64 byte alignment
 - Compilator basically (Swap out AddNodes, InPlaceAddNodes. Remove redundant memory?)
