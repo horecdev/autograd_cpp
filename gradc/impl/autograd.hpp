@@ -58,7 +58,13 @@ namespace gradc {
 
         for (TensorStateBase* current : topo_order) {
             current->backward();
+            current->clear_grad_if_non_leaf();
         }
+    }
+
+    template <typename T>
+    void Tensor<T>::zero_grad() {
+        m_state->m_grad = std::nullopt;
     }
 }
 

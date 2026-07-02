@@ -26,13 +26,13 @@ namespace gradc {
                 return apply_out_of_place(m_left, m_right, m_target_shape, [](T a, T b) {return a + b;});
             }
 
-            std::vector<TensorStateBase*> get_input_states() override {
-                return {m_left.m_state.get(), m_right.m_state.get()};
-            }
-
             void backward(const Tensor<T>& out_grad) {
                 m_left.accumulate_grad(unbroadcast_grad(out_grad, m_left));
                 m_right.accumulate_grad(unbroadcast_grad(out_grad, m_right));
+            }
+
+            std::vector<TensorStateBase*> get_input_states() override {
+                return {m_left.m_state.get(), m_right.m_state.get()};
             }
     };
 
@@ -51,16 +51,16 @@ namespace gradc {
                 return apply_out_of_place(m_left, m_right, m_target_shape, [](T a, T b) {return a * b;});
             }
 
-            std::vector<TensorStateBase*> get_input_states() override {
-                return {m_left.m_state, m_right.m_state};
-            }
-
             void backward(const Tensor<T>& out_grad) {
                 Tensor<T> raw_left_grad = apply_out_of_place(out_grad, m_right, m_target_shape, [](T a, T b){return a * b;});
                 Tensor<T> raw_right_grad = apply_out_of_place(out_grad, m_left, m_target_shape, [](T a, T b){return a * b;});
 
                 m_left.accumulate_grad(unbroadcast_grad(raw_left_grad, m_left));
                 m_right.accumulate_grad(unbroadcast_grad(raw_right_grad, m_right));
+            }
+
+            std::vector<TensorStateBase*> get_input_states() override {
+                return {m_left.m_state.get(), m_right.m_state.get()};
             }
     };
 
@@ -79,6 +79,12 @@ namespace gradc {
                 apply_in_place(m_left, m_right, [](T& a, T b){a += b;}); 
                 return m_left;
             }
+
+
+
+            std::vector<TensorStateBase*> get_input_states() override {
+                return {m_left.m_state.get(), m_right.m_state.get()};
+            }
         };
 
     template <typename T>
@@ -94,6 +100,10 @@ namespace gradc {
                 m_right.realize();
                 apply_in_place(m_left, m_right, [](T& a, T b){a *= b;}); 
                 return m_left;
+            }
+
+            std::vector<TensorStateBase*> get_input_states() override {
+                return {m_left.m_state.get(), m_right.m_state.get()};
             }
     };
 
@@ -112,6 +122,10 @@ namespace gradc {
 
             void backward(const Tensor<T>& out_grad) override {
                 m_parent.accumulate_grad(Tensor<T>(m_parent.m_shape, m_reduction_metadata.temp_strides, 0, out_grad.m_state->m_storage, false));
+            }
+
+            std::vector<TensorStateBase*> get_input_states() override {
+                return {m_parent.m_state.get()};
             }
     };
 
@@ -135,6 +149,10 @@ namespace gradc {
                 Tensor<T> strided_mean_grad = Tensor<T>(m_parent.m_shape, m_reduction_metadata.temp_strides, 0, divided_grad.m_state->m_storage, false);
                 m_parent.accumulate_grad(strided_mean_grad);
             }
+
+            std::vector<TensorStateBase*> get_input_states() override {
+                return {m_parent.m_state.get()};
+            }
     };
 
 
@@ -153,6 +171,10 @@ namespace gradc {
             void backward(const Tensor<T>& out_grad) override {
                 m_parent.accumulate_grad(out_grad); // literally just copy over
             }
+
+            std::vector<TensorStateBase*> get_input_states() override {
+                return {m_parent.m_state.get()};
+            }
     };
 
     template <typename T>
@@ -169,6 +191,10 @@ namespace gradc {
 
             void backward(const Tensor<T>& out_grad) override {
                 m_parent.accumulate_grad(out_grad);
+            }
+
+            std::vector<TensorStateBase*> get_input_states() override {
+                return {m_parent.m_state.get()};
             }
     }; 
 
@@ -191,6 +217,10 @@ namespace gradc {
                 Tensor<T> transposed_grad = lobotomized_transpose_view(out_grad, m_dim0,  m_dim1);
                 m_parent.accumulate_grad(transposed_grad);
             }
+
+            std::vector<TensorStateBase*> get_input_states() override {
+                return {m_parent.m_state.get()};
+            }
     };
 
     template <typename T>
@@ -210,6 +240,10 @@ namespace gradc {
                 reshaped_grad.m_shape = m_parent.m_shape; // parent and grad are contiguous, so can just take same strides.
                 reshaped_grad.m_strides = m_parent.m_strides;
                 m_parent.accumulate_grad(reshaped_grad);
+            }
+
+            std::vector<TensorStateBase*> get_input_states() override {
+                return {m_parent.m_state.get()};
             }
     };
 
@@ -237,6 +271,10 @@ namespace gradc {
                 Tensor<T> permuted_grad = lobotomized_permute_view(out_grad, backward_axes);
                 m_parent.accumulate_grad(permuted_grad);
             }
+
+            std::vector<TensorStateBase*> get_input_states() override {
+                return {m_parent.m_state.get()};
+            }
     };
 
     template <typename T>
@@ -260,6 +298,10 @@ namespace gradc {
                 // grad_view has buffer of full_grad that matches shape of m_parent, so in-place assignment actually edits full_grad.
                 m_parent.accumulate_grad(full_grad);
             } 
+
+            std::vector<TensorStateBase*> get_input_states() override {
+                return {m_parent.m_state.get()};
+            }
     };
 
     template <typename InT, typename OutT>
@@ -278,6 +320,10 @@ namespace gradc {
             void backward(const Tensor<OutT>& out_grad) override {
                 Tensor<InT> cast_grad = lobotomized_cast_alloc<OutT, InT>(out_grad);
                 m_parent.accumulate_grad(cast_grad);
+            }
+
+            std::vector<TensorStateBase*> get_input_states() override {
+                return {m_parent.m_state.get()};
             }
     };
 
@@ -318,6 +364,15 @@ namespace gradc {
                     parent.accumulate_grad(grad_view);
                     concat_dim_progress += parent.m_shape[m_concat_dim];
                 }
+            }
+
+            std::vector<TensorStateBase*> get_input_states() override {
+                std::vector<TensorStateBase*> dependencies;
+                dependencies.reserve(std::ssize(m_parents_list));
+                for (const Tensor<T>& parent : m_parents_list) {
+                    dependencies.push_back(parent.m_state.get());
+                }
+                return dependencies;
             }
     };
 

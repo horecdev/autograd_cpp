@@ -125,6 +125,8 @@ namespace gradc {
             virtual std::vector<TensorStateBase*> get_dependencies() const = 0;
 
             virtual void backward() const = 0;
+
+            virtual void clear_grad_if_non_leaf() = 0;
     };
 
     template <typename T>
@@ -151,6 +153,12 @@ namespace gradc {
 
         void backward() const override {
             m_creation_op->backward(m_grad.value());
+        }
+
+        void clear_graph_if_non_leaf() {
+            if (m_creation_op != nullptr) {
+                m_grad = std::nullopt;
+            }
         }
     };
 
@@ -192,6 +200,8 @@ namespace gradc {
             void backward();
 
             void accumulate_grad(const Tensor<T>& incoming_grad);
+
+            void zero_grad();
 
             // LIFECYCLE 
             Tensor();
