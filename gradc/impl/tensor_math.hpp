@@ -93,34 +93,19 @@ namespace gradc {
             throw std::runtime_error("Cannot mutate leaf tensor that requires gradients in-place.");
         }
 
-        if (main.m_shape != p_other.m_shape) { // Validates on the graph building
+        if (main.m_shape != p_other.m_shape) { // Validates during graph building
             if (!can_broadcast(other.m_shape, main.m_shape)) {
                 throw std::runtime_error("Could not broadcast RHS to match LHS during in-place operation.");
             }
         }
 
-        if (main.m_state.use_count() == 1 && main.m_state->m_storage.use_count() == 1) {
-            // going with ELSE and logic below would edit TensorState across already saved graph pieces
-            // say: y = a + b, then a += 5. Without ref counting the cached a inside y is edited, its m_op is now InPlaceAddNode. 
-            // It executes even though it was done later.
-            std::shared_ptr<TensorState<T>> old_tensor_state = std::make_shared<TensorState<T>>(main.m_state->m_storage, std::move(main.m_state->m_creation_op));
-            Tensor<T> old_main = Tensor<T>(main.m_shape, main.m_strides, main.m_offset, std::move(old_tensor_state), main.m_requires_grad);
-            main.m_state->m_creation_op = std::make_unique<InPlaceAddNode<T>>(std::move(old_main), std::move(p_other));
-            main.m_requires_grad = main.m_requires_grad || p_other.m_requires_grad;
-            return main;
-        }
-
-        else {
-            // say a = b = c. 3 lightview tensors, refcount of TensorState is 3
-            // you do a += 5. a gets a new tensor state, and keeps the old a lightview tensor inside AddNode. 
-            // The refcount doesnt change. State #2 has 1, State #1 has 3. A is the same tensor, but with new state and a node.
-            bool requires_grad = main.m_requires_grad || p_other.m_requires_grad;
-            std::shared_ptr<TensorState<T>> new_state = std::make_shared<TensorState<T>>();
-            new_state->m_creation_op = std::make_unique<AddNode<T>>(main, p_other, main.m_shape);
-            main.m_state = std::move(new_state);
-            main.m_requires_grad = requires_grad;
-            return main;
-        }
+        bool requires_grad = main.m_requires_grad || p_other.m_requires_grad;
+        std::shared_ptr<TensorState<T>> new_state = std::make_shared<TensorState<T>>();
+        new_state->m_creation_op = std::make_unique<AddNode<T>>(main, p_other, main.m_shape);
+        main.m_state = std::move(new_state);
+        main.m_requires_grad = requires_grad;
+        return main;
+        
     }
 
     template <typename T, typename U>
@@ -152,26 +137,13 @@ namespace gradc {
                 throw std::runtime_error("Could not broadcast RHS to match LHS during in-place operation.");
             }
         }
-        
-        if (main.m_state.use_count() == 1 && main.m_state->m_storage.use_count() == 1) {
-            // going with ELSE and logic below would edit TensorState across already saved graph pieces
-            // say: y = a + b, then a += 5. Without ref counting the cached a inside y is edited, its m_op is now InPlaceAddNode. 
-            // It executes even though it was done later.
-            std::shared_ptr<TensorState<T>> old_tensor_state = std::make_shared<TensorState<T>>(main.m_state->m_storage, std::move(main.m_state->m_creation_op));
-            Tensor<T> old_main = Tensor<T>(main.m_shape, main.m_strides, main.m_offset, std::move(old_tensor_state), main.m_requires_grad);
-            main.m_state->m_creation_op = std::make_unique<InPlaceMulNode<T>>(std::move(old_main), std::move(p_other));
-            main.m_requires_grad = main.m_requires_grad || p_other.m_requires_grad;
-            return main;
-        }
 
-        else {
-            bool requires_grad = main.m_requires_grad || p_other.m_requires_grad;
-            std::shared_ptr<TensorState<T>> new_state = std::make_shared<TensorState<T>>();
-            new_state->m_creation_op = std::make_unique<MulNode<T>>(main, p_other, main.m_shape);
-            main.m_state = std::move(new_state);
-            main.m_requires_grad = requires_grad;
-            return main;
-        }
+        bool requires_grad = main.m_requires_grad || p_other.m_requires_grad;
+        std::shared_ptr<TensorState<T>> new_state = std::make_shared<TensorState<T>>();
+        new_state->m_creation_op = std::make_unique<MulNode<T>>(main, p_other, main.m_shape);
+        main.m_state = std::move(new_state);
+        main.m_requires_grad = requires_grad;
+        return main;
     }
 
     template <typename T, typename U>

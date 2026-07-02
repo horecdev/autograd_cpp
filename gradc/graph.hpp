@@ -64,49 +64,6 @@ namespace gradc {
             }
     };
 
-
-    template <typename T>
-    class InPlaceAddNode : public Node<T> {
-        private:
-            Tensor<T> m_left; // pre-addition tensor
-            Tensor<T> m_right; 
-        public:
-            InPlaceAddNode(Tensor<T> left, Tensor<T> right) : m_left(std::move(left)), m_right(std::move(right)) {}
-        
-            Tensor<T> realize() override {
-                m_left.realize();
-                m_right.realize();
-                apply_in_place(m_left, m_right, [](T& a, T b){a += b;}); 
-                return m_left;
-            }
-
-
-
-            std::vector<TensorStateBase*> get_input_states() override {
-                return {m_left.m_state.get(), m_right.m_state.get()};
-            }
-        };
-
-    template <typename T>
-    class InPlaceMulNode : public Node<T> {
-        private:
-            Tensor<T> m_left;
-            Tensor<T> m_right; 
-        public:
-            InPlaceMulNode(Tensor<T> left, Tensor<T> right) : m_left(std::move(left)), m_right(std::move(right)) {}
-        
-            Tensor<T> realize() override {
-                m_left.realize();
-                m_right.realize();
-                apply_in_place(m_left, m_right, [](T& a, T b){a *= b;}); 
-                return m_left;
-            }
-
-            std::vector<TensorStateBase*> get_input_states() override {
-                return {m_left.m_state.get(), m_right.m_state.get()};
-            }
-    };
-
     template <typename T>
     class SumNode : public Node<T> {
         private:
