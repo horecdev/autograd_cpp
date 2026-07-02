@@ -78,7 +78,7 @@ namespace gradc {
             }
 
             void backward(const Tensor<T>& out_grad) override {
-                m_parent.accumulate_grad(Tensor<T>(m_parent.m_shape, m_reduction_metadata.temp_strides, 0, out_grad.m_state->m_storage, false));
+                m_parent.accumulate_grad(Tensor<T>(m_parent.shape(), m_reduction_metadata.temp_strides, 0, out_grad._get_storage(), false));
             }
 
             std::vector<TensorStateBase*> get_input_states() override {
@@ -102,8 +102,8 @@ namespace gradc {
             }
 
             void backward(const Tensor<T>& out_grad) override {
-                Tensor<T> divided_grad = apply_out_of_place(out_grad, Tensor<T>(static_cast<T>(m_reduction_metadata.reduced_vol)), out_grad.m_shape, [](T a, T b){return a / b;});
-                Tensor<T> strided_mean_grad = Tensor<T>(m_parent.m_shape, m_reduction_metadata.temp_strides, 0, divided_grad.m_state->m_storage, false);
+                Tensor<T> divided_grad = apply_out_of_place(out_grad, Tensor<T>(static_cast<T>(m_reduction_metadata.reduced_vol)), out_grad.shape(), [](T a, T b){return a / b;});
+                Tensor<T> strided_mean_grad = Tensor<T>(m_parent.shape(), m_reduction_metadata.temp_strides, 0, divided_grad._get_storage(), false);
                 m_parent.accumulate_grad(strided_mean_grad);
             }
 
@@ -216,7 +216,7 @@ namespace gradc {
             }
 
             void backward(const Tensor<T>& out_grad) override {
-                const int64_t n_dim = std::ssize(m_parent.m_shape);
+                const int64_t n_dim = std::ssize(m_parent.shape());
                 std::vector<int64_t> normalized_axes = normalize_axes_vector(m_axes, n_dim);
                 std::vector<int64_t> backward_axes(n_dim, -1);
                 for (int64_t i = 0; i < n_dim; ++i) {
@@ -246,7 +246,7 @@ namespace gradc {
             }
 
             void backward(const Tensor<T>& out_grad) override {
-                Tensor<T> full_grad = Tensor<T>(m_parent.m_shape, T()); // Incoming grad is [5, 32] but the parent is [5, 10, 32]. 
+                Tensor<T> full_grad = Tensor<T>(m_parent.shape(), T()); // Incoming grad is [5, 32] but the parent is [5, 10, 32]. 
                 // You add dimension back for the temporary tensor (filled with 0s).
                 Tensor<T> grad_view = full_grad.create_lobotomized_slice_view(m_descriptors);
                 apply_in_place(grad_view, out_grad, [](T& a, T b){a = b;}); // grad_view and out_grad have the same dimensions.
@@ -311,13 +311,13 @@ namespace gradc {
                             descriptors.push_back(IndexDesc(_));
                         }
                         else {
-                            descriptors.push_back(IndexDesc(Slice(concat_dim_progress, concat_dim_progress + parent.m_shape[m_concat_dim])));
+                            descriptors.push_back(IndexDesc(Slice(concat_dim_progress, concat_dim_progress + parent.shape()[m_concat_dim])));
 
                         }
                     }
                     Tensor<T> grad_view = create_lobotomized_slice_view(out_grad, descriptors);
                     parent.accumulate_grad(grad_view);
-                    concat_dim_progress += parent.m_shape[m_concat_dim];
+                    concat_dim_progress += parent.shape()[m_concat_dim];
                 }
             }
 

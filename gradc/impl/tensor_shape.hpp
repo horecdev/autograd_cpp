@@ -57,7 +57,7 @@ namespace gradc {
         std::vector<int64_t> final_shape = tensor_list[0].m_shape;
         concat_dim = normalize_axis(concat_dim, n_dim);
         final_shape[concat_dim] = 0;
-        bool m_requires_grad = false;
+        bool requires_grad = false;
 
         for (const Tensor<T>& parent : tensor_list) {
             if (std::ssize(parent.m_shape) != n_dim) {
@@ -69,10 +69,10 @@ namespace gradc {
                 }
             }
             final_shape[concat_dim] += parent.m_shape[concat_dim];
-            m_requires_grad = m_requires_grad || parent.m_requires_grad;
+            requires_grad = requires_grad || parent.m_requires_grad;
         }
 
-        Tensor<T> result = Tensor<T>(final_shape, m_requires_grad, lazy);
+        Tensor<T> result = Tensor<T>(final_shape, requires_grad, lazy);
         result.m_state->m_creation_op = std::make_unique<ConcatNode<T>>(tensor_list, concat_dim, std::move(final_shape));
         
         return result;
