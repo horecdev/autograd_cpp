@@ -152,7 +152,10 @@ namespace gradc {
         }
 
         void backward() const override {
-            m_creation_op->backward(m_grad.value());
+            if (m_creation_op != nullptr) {
+                m_creation_op->backward(m_grad.value());
+            }
+            
         }
 
         void clear_grad_if_non_leaf() {
@@ -187,7 +190,7 @@ namespace gradc {
 
         public:
             void realize() {
-                if (m_state->m_is_realized != true) {
+                if (m_state->m_creation_op != nullptr && m_state->m_is_realized != true) { // is not leaf and wasnt realized yet
                     Tensor computed_result = m_state->m_creation_op->realize();
                     if (m_state->m_storage != computed_result.m_state->m_storage) {
                         m_state->m_storage->m_data = std::move(computed_result.m_state->m_storage->m_data);
@@ -278,7 +281,7 @@ namespace gradc {
             template <typename U> friend Tensor<T> lazy_concat(std::vector<Tensor<T>> &tensor_list, int64_t concat_dim);
             
             // MATH
-            template <typename U, typename Func> friend void apply_in_place(Tensor<U>& left, const Tensor<U>& right, Func op);
+            template <typename T1, typename T2, typename Func> friend void apply_in_place(Tensor<T1>& left, const Tensor<T2>& right, Func op);
             template <typename U, typename Func> friend Tensor<U> apply_out_of_place(const Tensor<U>& left, const Tensor<U>& right, const std::vector<int64_t>& target_shape, Func op);
             template <typename U, typename Func> friend Tensor<U> apply_reduction_operation(const Tensor<U>& source, const ReductionMetadata& reduction_metadata, U init_value, Func op);
 
