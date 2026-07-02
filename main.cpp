@@ -32,7 +32,9 @@ int main() {
 
     // 3. Backward pass
     loss.accumulate_grad(Tensor<float>(1.0f)); 
+    std::cout << "accumulate grad" << std::endl;
     loss.backward();
+    std::cout << "backward grad" << std::endl;
 
     // 4. Print Gradients
     std::cout << "\n--- Gradients ---\n";

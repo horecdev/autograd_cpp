@@ -236,7 +236,7 @@ namespace gradc {
 
             bool requires_grad() const {return m_requires_grad;}
 
-            TensorStateBase* _get_state_base() {
+            TensorStateBase* _get_state_base() const {
                 return m_state.get();
             }
 
@@ -312,9 +312,7 @@ namespace gradc {
             template <typename U> friend Tensor<U> lobotomized_permute_view(const Tensor<U>& source, const std::vector<int64_t>& axes);
             template <typename InT, typename OutT> friend Tensor<OutT> lobotomized_cast_alloc(const Tensor<InT>& source);
             template <typename U> friend Tensor<U> create_lobotomized_slice_view(const Tensor<U>& source, const std::vector<IndexDesc>& descriptors);
-            template <typename U> friend Tensor<U> lobotomized_concat_alloc(const std::vector<Tensor<U>>& tensor_list, int64_t concat_dim, std::vector<int64_t> final_shape);
-
-
+            template <typename U> friend Tensor<U> lobotomized_concat_alloc(const std::vector<Tensor<U>>& tensor_list, int64_t concat_dim, const std::vector<int64_t>& final_shape);
             template <typename U> friend std::ostream& print_tensor(std::ostream& stream, const Tensor<U>& source, PrintOptions opts);
             template <typename U> friend void print_dim(std::ostream& stream, const Tensor<U>& source, const PrintOptions& opts, int64_t current_dim, int64_t base_offset, bool is_last);
 
