@@ -17,7 +17,7 @@ namespace gradc {
     class Node {
 
         public:
-            virtual Tensor<T> realize() const = 0;
+            virtual Tensor<T> realize() = 0;
 
             virtual void backward(const Tensor<T>& out_grad) = 0;
 

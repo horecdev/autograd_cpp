@@ -155,7 +155,7 @@ namespace gradc {
             m_creation_op->backward(m_grad.value());
         }
 
-        void clear_graph_if_non_leaf() {
+        void clear_grad_if_non_leaf() {
             if (m_creation_op != nullptr) {
                 m_grad = std::nullopt;
             }
@@ -230,9 +230,17 @@ namespace gradc {
 
             const std::vector<int64_t>& strides() const {return m_strides;}
 
-            const int64_t offset() const {return m_offset;}
+            int64_t offset() const {return m_offset;}
 
-            const bool requires_grad() const {return m_requires_grad;}
+            bool requires_grad() const {return m_requires_grad;}
+
+            TensorStateBase* _get_state_base() {
+                return m_state.get();
+            }
+
+            std::optional<Tensor<T>> grad() const {
+                return m_state->m_grad;
+            }
 
             DType dtype() const {return type_to_dtype<T>();}
 
@@ -301,8 +309,9 @@ namespace gradc {
             template <typename U> friend std::ostream& print_tensor(std::ostream& stream, const Tensor<U>& source, PrintOptions opts);
             template <typename U> friend void print_dim(std::ostream& stream, const Tensor<U>& source, const PrintOptions& opts, int64_t current_dim, int64_t base_offset, bool is_last);
 
+            template <typename U> friend Tensor<U> unbroadcast_grad(const Tensor<U>& raw_grad, const Tensor<U>& parent);
+
             template <typename TargetT> Tensor<TargetT> cast() const;
-            friend int main();
     };      
 } 
 

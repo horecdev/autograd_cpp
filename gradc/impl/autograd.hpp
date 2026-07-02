@@ -54,7 +54,7 @@ namespace gradc {
 
     template <typename T>
     void Tensor<T>::backward() {
-        std::vector<TensorStateBase*> topo_order = AutogradEngine::build_topo(m_state);
+        std::vector<TensorStateBase*> topo_order = AutogradEngine::build_topo(m_state.get());
 
         for (TensorStateBase* current : topo_order) {
             current->backward();

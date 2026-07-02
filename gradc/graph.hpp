@@ -26,13 +26,13 @@ namespace gradc {
                 return apply_out_of_place(m_left, m_right, m_target_shape, [](T a, T b) {return a + b;});
             }
 
-            void backward(const Tensor<T>& out_grad) {
+            void backward(const Tensor<T>& out_grad) override {
                 m_left.accumulate_grad(unbroadcast_grad(out_grad, m_left));
                 m_right.accumulate_grad(unbroadcast_grad(out_grad, m_right));
             }
 
             std::vector<TensorStateBase*> get_input_states() override {
-                return {m_left.m_state.get(), m_right.m_state.get()};
+                return {m_left._get_state_base(), m_right._get_state_base()};
             }
     };
 
@@ -51,7 +51,7 @@ namespace gradc {
                 return apply_out_of_place(m_left, m_right, m_target_shape, [](T a, T b) {return a * b;});
             }
 
-            void backward(const Tensor<T>& out_grad) {
+            void backward(const Tensor<T>& out_grad) override {
                 Tensor<T> raw_left_grad = apply_out_of_place(out_grad, m_right, m_target_shape, [](T a, T b){return a * b;});
                 Tensor<T> raw_right_grad = apply_out_of_place(out_grad, m_left, m_target_shape, [](T a, T b){return a * b;});
 
@@ -60,7 +60,7 @@ namespace gradc {
             }
 
             std::vector<TensorStateBase*> get_input_states() override {
-                return {m_left.m_state.get(), m_right.m_state.get()};
+                return {m_left._get_state_base(), m_right._get_state_base()};
             }
     };
 
@@ -82,7 +82,7 @@ namespace gradc {
             }
 
             std::vector<TensorStateBase*> get_input_states() override {
-                return {m_parent.m_state.get()};
+                return {m_parent._get_state_base()};
             }
     };
 
@@ -108,7 +108,7 @@ namespace gradc {
             }
 
             std::vector<TensorStateBase*> get_input_states() override {
-                return {m_parent.m_state.get()};
+                return {m_parent._get_state_base()};
             }
     };
 
@@ -130,7 +130,7 @@ namespace gradc {
             }
 
             std::vector<TensorStateBase*> get_input_states() override {
-                return {m_parent.m_state.get()};
+                return {m_parent._get_state_base()};
             }
     };
 
@@ -151,7 +151,7 @@ namespace gradc {
             }
 
             std::vector<TensorStateBase*> get_input_states() override {
-                return {m_parent.m_state.get()};
+                return {m_parent._get_state_base()};
             }
     }; 
 
@@ -176,7 +176,7 @@ namespace gradc {
             }
 
             std::vector<TensorStateBase*> get_input_states() override {
-                return {m_parent.m_state.get()};
+                return {m_parent._get_state_base()};
             }
     };
 
@@ -200,7 +200,7 @@ namespace gradc {
             }
 
             std::vector<TensorStateBase*> get_input_states() override {
-                return {m_parent.m_state.get()};
+                return {m_parent._get_state_base()};
             }
     };
 
@@ -230,7 +230,7 @@ namespace gradc {
             }
 
             std::vector<TensorStateBase*> get_input_states() override {
-                return {m_parent.m_state.get()};
+                return {m_parent._get_state_base()};
             }
     };
 
@@ -257,7 +257,7 @@ namespace gradc {
             } 
 
             std::vector<TensorStateBase*> get_input_states() override {
-                return {m_parent.m_state.get()};
+                return {m_parent._get_state_base()};
             }
     };
 
@@ -280,7 +280,7 @@ namespace gradc {
             }
 
             std::vector<TensorStateBase*> get_input_states() override {
-                return {m_parent.m_state.get()};
+                return {m_parent._get_state_base()};
             }
     };
 
@@ -327,7 +327,7 @@ namespace gradc {
                 std::vector<TensorStateBase*> dependencies;
                 dependencies.reserve(std::ssize(m_parents_list));
                 for (const Tensor<T>& parent : m_parents_list) {
-                    dependencies.push_back(parent.m_state.get());
+                    dependencies.push_back(parent._get_state_base());
                 }
                 return dependencies;
             }
