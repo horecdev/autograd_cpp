@@ -155,10 +155,9 @@ namespace gradc {
             if (m_creation_op != nullptr) {
                 m_creation_op->backward(m_grad.value());
             }
-            
         }
 
-        void clear_grad_if_non_leaf() {
+        void clear_grad_if_non_leaf() override {
             if (m_creation_op != nullptr) {
                 m_grad = std::nullopt;
             }
@@ -241,6 +240,14 @@ namespace gradc {
                 return m_state.get();
             }
 
+            std::shared_ptr<TensorState<T>> _get_state() const {
+                return m_state;
+            }
+
+            std::shared_ptr<Storage<T>> _get_storage() const {
+                return m_state->m_storage;
+            }
+
             std::optional<Tensor<T>> grad() const {
                 return m_state->m_grad;
             }
@@ -301,18 +308,18 @@ namespace gradc {
             template <typename U> friend Tensor<U> lobotomized_broadcast_view(const Tensor<U>& source, const std::vector<int64_t>& target_shape);
             template <typename U> friend Tensor<U> lobotomized_contiguous_alloc(const Tensor<U>& source);
             template <typename U> friend Tensor<U> lobotomized_transpose_view(const Tensor<U>& source, int64_t dim0, int64_t dim1);
-            template <typename U> friend Tensor<U> lobotomized_reshape_view(const Tensor<U>& source);
-            template <typename U> friend Tensor<U> lobotomized_permute_view(const Tensor<T>& source, const std::vector<int64_t>& axes);
+            template <typename U> friend Tensor<U> lobotomized_reshape_view(const Tensor<U>& source, const std::vector<int64_t>& target_shape);
+            template <typename U> friend Tensor<U> lobotomized_permute_view(const Tensor<U>& source, const std::vector<int64_t>& axes);
             template <typename InT, typename OutT> friend Tensor<OutT> lobotomized_cast_alloc(const Tensor<InT>& source);
-            template <typename U> friend Tensor<U> create_lobotomized_slice_view(const Tensor<T>& source, const std::vector<IndexDesc>& descriptors);
+            template <typename U> friend Tensor<U> create_lobotomized_slice_view(const Tensor<U>& source, const std::vector<IndexDesc>& descriptors);
             template <typename U> friend Tensor<U> lobotomized_concat_alloc(const std::vector<Tensor<U>>& tensor_list, int64_t concat_dim, std::vector<int64_t> final_shape);
 
-           
 
             template <typename U> friend std::ostream& print_tensor(std::ostream& stream, const Tensor<U>& source, PrintOptions opts);
             template <typename U> friend void print_dim(std::ostream& stream, const Tensor<U>& source, const PrintOptions& opts, int64_t current_dim, int64_t base_offset, bool is_last);
 
             template <typename U> friend Tensor<U> unbroadcast_grad(const Tensor<U>& raw_grad, const Tensor<U>& parent);
+            template <typename U> friend Tensor<U> lazy_concat(std::vector<Tensor<U>>& tensor_list, int64_t concat_dim);
 
             template <typename TargetT> Tensor<TargetT> cast() const;
     };      

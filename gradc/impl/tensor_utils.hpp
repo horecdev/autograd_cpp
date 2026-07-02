@@ -616,7 +616,7 @@ namespace gradc {
             new_shape[neg_one_idx] = unknown_dim;
         }
 
-        new_strides[std::ssize(target_shape) - 1] = 1;
+        new_strides[std::ssize(target_shape) - 1] = 1; // reshaping changes just where the rows break, not the order in which array is read. Therefore result is contiguous.
         for (int64_t i = std::ssize(target_shape) - 1; i > 0; --i) {
             new_strides[i - 1] = new_shape[i] * new_strides[i];
         }

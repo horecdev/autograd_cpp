@@ -6,27 +6,48 @@
 using namespace gradc;
 
 int main() {
-    // 1. Init scalar tensors
-    Tensor<float> a(2.0f);
-    a.set_requires_grad(true);
+    // 1. Init leaf tensors
+    Tensor<float> w({3, 3}, 2.0f);
+    w.set_requires_grad(true);
 
-    Tensor<float> b(3.0f);
+    Tensor<float> x({1, 3}, 4.0f); 
+    x.set_requires_grad(true);
+
+    Tensor<float> b({6}, 1.5f);
     b.set_requires_grad(true);
 
-    // 2. Math: c = (a * b) + a
-    auto c = (a * b) + a;
-    c.realize();
+    // 2. Forward pass: Math, Broadcast, Slice, Reshape, Concat, Reduce
+    auto y = (w * x) + w; 
+    auto y_slice = y[Slice(0, 2), _]; 
+    auto y_reshaped = y_slice.reshape({6});
+    
+    std::vector<Tensor<float>> to_concat = {y_reshaped, b};
+    auto concat_res = lazy_concat(to_concat, 0); 
+    
+    auto loss = concat_res.sum({0}, false);
+    loss.realize();
+
+    std::cout << "--- Forward Pass Result ---\nLoss: ";
+    print_tensor(std::cout, loss);
 
     // 3. Backward pass
-    // Seed the root gradient with 1.0f
-    c.accumulate_grad(Tensor<float>(1.0f)); 
-    c.backward();
+    loss.accumulate_grad(Tensor<float>(1.0f)); 
+    loss.backward();
 
-    // 4. Print expected vs actual
-    // Expected dc/da = b + 1 = 3 + 1 = 4
-    // Expected dc/db = a = 2
-    std::cout << "Expected grad a: 4 | Actual: " << a.grad().value().item() << "\n";
-    std::cout << "Expected grad b: 2 | Actual: " << b.grad().value().item() << "\n";
+    // 4. Print Gradients
+    std::cout << "\n--- Gradients ---\n";
+    
+    std::cout << "Grad w (Row 2 sliced out, should be 0.0):\n";
+    w.grad().value().realize();
+    print_tensor(std::cout, w.grad().value());
+
+    std::cout << "\nGrad x (Broadcasted, should be summed across rows 0 and 1):\n";
+    x.grad().value().realize();
+    print_tensor(std::cout, x.grad().value());
+
+    std::cout << "\nGrad b (Passed through concat and sum, should be 1.0):\n";
+    b.grad().value().realize();
+    print_tensor(std::cout, b.grad().value());
 
     return 0;
 }

@@ -73,7 +73,7 @@ namespace gradc {
         }
 
         Tensor<T> result = Tensor<T>(final_shape, m_requires_grad, lazy);
-        result.m_state->m_creation_op = ConcatNode<T>(tensor_list, concat_dim);
+        result.m_state->m_creation_op = std::make_unique<ConcatNode<T>>(tensor_list, concat_dim, std::move(final_shape));
         
         return result;
     }

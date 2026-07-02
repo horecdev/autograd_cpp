@@ -192,10 +192,8 @@ namespace gradc {
                 return m_parent;
             }
 
-            void backward(const Tensor<T>& out_grad) override {
-                Tensor<T> reshaped_grad = out_grad;
-                reshaped_grad.m_shape = m_parent.m_shape; // parent and grad are contiguous, so can just take same strides.
-                reshaped_grad.m_strides = m_parent.m_strides;
+            void backward(const Tensor<T>& out_grad) override { // parent AND out_grad are contiguous, (aligns 1D memory perfectly) so can just copy shape, strides.
+                Tensor<T> reshaped_grad = Tensor<T>(m_parent.shape(), m_parent.strides(), 0, out_grad._get_storage(), false);
                 m_parent.accumulate_grad(reshaped_grad);
             }
 

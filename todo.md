@@ -9,6 +9,7 @@ DONE Write zero_grad to tensor class
 DONE InPlaceOpps as disguise to normal opps (no nodes, just operator overload)
 DONE Delete nodes on Inplace
 - test out the bwd pass.
+- bite the bullet and remove friends BS but write public getters
 - InPlace mutation on REALZIE TIME if refcount tensorstate == 1 and refcount storage == 1. Its guaranteed to be an rvalue living only inside AddNode. Nowehere else with no shared storage. 
 - SIMD fast paths
 - AVX 32/64 byte alignment (Storage prep for CUDA)
