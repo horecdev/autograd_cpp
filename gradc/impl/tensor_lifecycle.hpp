@@ -32,7 +32,7 @@ namespace gradc {
 
     template <typename T> // makes a contiguous eager copy (figures out stides) with shared storage.
     Tensor<T>::Tensor(std::vector<int64_t> shape, std::shared_ptr<Storage<T>> storage) 
-        : m_shape(std::move(shape)), m_strides(std::ssize(shape)), m_offset(0), m_state(std::make_shared<TensorState<T>>(std::move(storage))), m_requires_grad(false) {
+        : m_shape(std::move(shape)), m_strides(std::ssize(m_shape)), m_offset(0), m_state(std::make_shared<TensorState<T>>(std::move(storage))), m_requires_grad(false) {
             if (std::ssize(m_shape) > 0) {
                 m_strides[std::ssize(m_shape) - 1] = 1; 
                 for (int64_t i = std::ssize(m_shape) - 1; i > 0; --i) {
