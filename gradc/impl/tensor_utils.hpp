@@ -512,8 +512,8 @@ namespace gradc {
     }
 
     template <typename T>
-    Tensor<T> unbroadcast_grad(const Tensor<T>& raw_grad, const Tensor<T>& parent) {
-        std::vector<int64_t> broadcast_axes = find_broadcast_axes(raw_grad.m_shape, parent.m_shape);
+    Tensor<T> unbroadcast_grad(const Tensor<T>& raw_grad, const std::vector<int64_t>& orig_shape) {
+        std::vector<int64_t> broadcast_axes = find_broadcast_axes(raw_grad.m_shape, orig_shape);
 
         if (broadcast_axes.empty()) {
             return raw_grad;
@@ -522,7 +522,7 @@ namespace gradc {
         ReductionMetadata red_meta = infer_reduction_metadata(raw_grad.m_shape, broadcast_axes, false);
         Tensor<T> reduced = apply_reduction_operation(raw_grad, red_meta, T(), [](T a, T b){return a + b;});
 
-        return Tensor<T>(parent.m_shape, std::move(reduced.m_state->m_storage)); // contiguous tensor (strides must be generated and shape must be kept as the one of parent)
+        return Tensor<T>(orig_shape, std::move(reduced.m_state->m_storage)); // contiguous tensor (strides must be generated and shape must be kept as the one of parent)
         // We keepdims=false so [2, 1] broadcast into [2, 5] turns into [2]. To fix that, we just use the same shape as the original (parent).
         // It works because reduction operation return a contiguous tensor.
     }

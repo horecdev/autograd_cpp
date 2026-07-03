@@ -199,6 +199,10 @@ namespace gradc {
                 m_state->m_is_realized = true; // so we dont realize() twice (reflected across multiple aliases)
             }
 
+            bool is_exclusive() {
+                return m_state.use_count() == 1 && m_state->m_storage.use_count() == 1;
+            }
+
             void backward();
 
             void accumulate_grad(const Tensor<T>& incoming_grad);
