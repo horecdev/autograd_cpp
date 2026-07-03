@@ -9,9 +9,10 @@ DONE Write zero_grad to tensor class
 DONE InPlaceOpps as disguise to normal opps (no nodes, just operator overload)
 DONE Delete nodes on Inplace
 DONE test out the bwd pass.
-- InPlace mutation on REALZIE TIME if refcount tensorstate == 1 and refcount storage == 1. Its guaranteed to be an rvalue living only inside AddNode. Add TO ALL NODES APPLICABLE
-- Check if requires grad to do calculation inside node backward() function
-- SIMD fast paths
+DONE InPlace mutation on REALZIE TIME if refcount tensorstate == 1 and refcount storage == 1. Its guaranteed to be an rvalue living only inside AddNode. Add TO ALL NODES APPLICABLE
+DONE Check if requires grad to do calculation inside node backward() function
+DONE Remove m_version from existence
+- SIMD contiguous fast paths (lobotomized_contiguous_alloc, apply_in_place, apply_out_of_place)
 - AVX 32/64 byte alignment (Storage prep for CUDA)
 - Memory pools (same shape math ran thousands of times)
 - CUDA

@@ -112,6 +112,7 @@ namespace gradc {
             (scalar_tensor.m_state->m_storage->m_data)[0] = (source.m_state->m_storage->m_data)[source.m_offset];
             return scalar_tensor;
         }
+
         Tensor<T> new_contiguous = Tensor<T>(source.m_shape);
         const int64_t n_dim = std::ssize(source.m_shape);
         std::vector<int64_t> odometer(n_dim, 0); 
@@ -140,7 +141,6 @@ namespace gradc {
     void apply_in_place(Tensor<T1>& left, const Tensor<T2>& right, Func op) { 
         if (left.m_shape.empty() && right.m_shape.empty()) {
             op(left.m_state->m_storage->m_data[left.m_offset], right.m_state->m_storage->m_data[right.m_offset]);
-            ++left.m_state->m_storage->m_version;
             return;
         }
         // Idea behind all the variables - track the right variables instead of copying vectors on the heap inside copied Tensors.
@@ -179,7 +179,6 @@ namespace gradc {
                 --i;
             }
         }
-        ++left.m_state->m_storage->m_version;
     }
 
     template <typename T, typename Func>

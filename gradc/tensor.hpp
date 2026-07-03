@@ -90,19 +90,17 @@ namespace gradc {
     template <typename T>
     struct Storage{
         std::vector<T> m_data;
-        int64_t m_version;
 
-        Storage() : m_data(std::vector<T>{}), m_version(0) {}
+        Storage() : m_data(std::vector<T>{}) {}
 
-        Storage(std::vector<T>&& data) : m_data(std::move(data)), m_version(0) {}
+        Storage(std::vector<T>&& data) : m_data(std::move(data)) {}
         // If there is a new buffer - zero out the version.
-        Storage(const Storage& other) : m_data(other.m_data), m_version(0) {}
-        Storage(Storage&& other) noexcept : m_data(std::move(other.m_data)), m_version(0) {}
+        Storage(const Storage& other) : m_data(other.m_data) {}
+        Storage(Storage&& other) noexcept : m_data(std::move(other.m_data)) {}
         
         Storage& operator=(const Storage& other) noexcept {
             if (this != &other) {
                 m_data = other.m_data; // copy deep
-                m_version = 0;
             }
             return *this;
 
@@ -110,7 +108,6 @@ namespace gradc {
         Storage& operator=(Storage&& other) {
             if (this != &other) {
                 m_data = std::move(other.m_data);
-                m_version = 0;
             }
             return *this;
         } 
