@@ -29,7 +29,7 @@ namespace gradc {
     template <typename T>
     Tensor<T> Tensor<T>::permute(const std::vector<int64_t>& axes) const {
         Tensor<T> permuted = lobotomized_permute_view(*this, axes);
-        permuted.m_state->m_creation_op = std::make_shared<PermuteNode<T>>(*this, axes);
+        permuted.m_state->m_creation_op = std::make_unique<PermuteNode<T>>(*this, axes);
         permuted.m_requires_grad = m_requires_grad;
         return permuted;
     }

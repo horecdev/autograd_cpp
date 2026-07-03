@@ -209,6 +209,7 @@ namespace gradc {
             Tensor();
             explicit Tensor(T value);
             explicit Tensor(std::vector<int64_t> shape, T init_val = T());
+            Tensor(std::initializer_list<int64_t> shape, T init_val = T()); // for {} constructing. 
             Tensor(std::vector<int64_t> shape, std::shared_ptr<Storage<T>> storage);
             Tensor(std::vector<int64_t> shape, bool requires_grad, LazyTag);
             Tensor(std::vector<int64_t> shape, std::vector<int64_t> strides, int64_t offset, std::shared_ptr<Storage<T>> storage, bool requires_grad);

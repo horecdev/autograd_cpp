@@ -3,6 +3,7 @@
 #include "../tensor.hpp"
 #include "../graph.hpp"
 
+#include <initializer_list>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -29,6 +30,9 @@ namespace gradc {
                 m_state = std::make_shared<TensorState<T>>(std::vector<T>(m_shape[0] * m_strides[0], init_val));
             }
         }
+
+    template <typename T>
+    Tensor<T>::Tensor(std::initializer_list<int64_t> shape, T init_val) : Tensor(std::vector<int64_t>(shape), init_val) {}
 
     template <typename T> // makes a contiguous eager copy (figures out stides) with shared storage.
     Tensor<T>::Tensor(std::vector<int64_t> shape, std::shared_ptr<Storage<T>> storage) 
