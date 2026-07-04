@@ -683,4 +683,35 @@ namespace gradc {
 
         return result;
     }
+
+    template <typename T, typename Func>
+    Tensor<T> apply_unary_out_of_place(const Tensor<T>& source, Func op) {
+        if (source.is_contiguous()) {
+            // fast path
+        }
+        
+        Tensor<T> result = Tensor<T>(source.m_shape);
+
+        const int64_t n_dim = std::ssize(source.m_shape);
+        std::vector<int64_t> odometer(n_dim, 0);
+        int64_t contiguous_idx = 0;
+        while (odometer[0] < source.m_shape[0]) {
+            int64_t strided_idx = source.m_offset;
+
+            for (int64_t i = 0; i < n_dim; ++i) {
+                strided_idx += odometer[i] * (source.m_strides)[i];
+            }
+            (result.m_state->m_storage->m_data)[contiguous_idx] = op((source.m_state->m_storage->m_data)[strided_idx]); 
+            ++contiguous_idx;
+            ++odometer[n_dim - 1];
+            int64_t i = n_dim - 1;
+            while ((odometer[i] == source.m_shape[i]) && i > 0) {
+                odometer[i] = 0;
+                ++odometer[i - 1];
+                --i;
+            }
+        }
+
+        return result;
+    }
 }
