@@ -111,6 +111,21 @@ namespace gradc {
                 }
             }
 
+            Storage() : m_data(nullptr), m_size(0), m_device(Device::CPU) {}
+
+            Storage(int64_t size, T init_val = T(), Device device = Device::CPU) : m_size(size), m_device(device) {
+                int64_t bytes = size * sizeof(T);
+
+                    if (m_device == Device::CPU) {
+                        int64_t aligned_bytes = ((bytes + 31) / 32) * 32; // must be 32 multiple
+                        // by default _aligned_malloc returns void* (pointer to very first byte) so u cast it to T*
+                        m_data = static_cast<T*>(_aligned_malloc(aligned_bytes, 32));
+                    }
+                    else {
+                        // some CUDA stuff later
+                    }
+            }
+
             T* data() const {
                 return m_data;
             }
@@ -126,8 +141,6 @@ namespace gradc {
             ~Storage() {
                 _aligned_free(m_data); // accepts void* but any pointer can implicitly convert to void*
             }
-
-        Storage() : m_data(nullptr), m_size(0), m_device(Device::CPU) {}
         
         Storage(const Storage&) = delete; // since we manually free memory copying should not exist.
         Storage& operator=(const Storage&) = delete; // we dont even copy storage anywhere so its cool
@@ -160,6 +173,8 @@ namespace gradc {
         std::optional<Tensor<T>> m_grad = std::nullopt; // every TensorState has grad. Even reshapes. 
 
         TensorState() : m_storage(std::make_shared<Storage<T>>()), m_creation_op(nullptr), m_is_realized(false) {}
+
+        TensorState(int64_t size, T init_val = T()) : m_storage(std::make_shared<Storage<T>>(size, init_val)), m_creation_op(nullptr), m_is_realized(false) {}
         
         TensorState(std::vector<T>&& data) : m_storage(std::make_shared<Storage<T>>(std::move(data))), m_creation_op(nullptr), m_is_realized(false) {}
 
