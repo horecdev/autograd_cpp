@@ -34,7 +34,6 @@ namespace gradc {
     };
 
 
-
     struct IndexDesc {
         IndexType m_type;
         int64_t m_single_val;
@@ -87,34 +86,61 @@ namespace gradc {
         else return DType::Unknown;
     }
 
+    enum class Device {
+        CPU,
+        CUDA
+    };
+
     template <typename T>
-    struct Storage{
-        std::vector<T> m_data;
+    class Storage{
+        private:
+            T* m_data = nullptr; // ptr to start of chunk of memory
+            int64_t m_size = 0;
+            Device m_device;
+        public:
+            Storage(int64_t size, Device device = Device::CPU) : m_size(size), m_device(device) {
+                int64_t bytes = size * sizeof(T);
 
-        Storage() : m_data(std::vector<T>{}) {}
-
-        Storage(std::vector<T>&& data) : m_data(std::move(data)) {}
-        // If there is a new buffer - zero out the version.
-        Storage(const Storage& other) : m_data(other.m_data) {}
-        Storage(Storage&& other) noexcept : m_data(std::move(other.m_data)) {}
-        
-        Storage& operator=(const Storage& other) noexcept {
-            if (this != &other) {
-                m_data = other.m_data; // copy deep
+                if (m_device == Device::CPU) {
+                    int64_t aligned_bytes = ((bytes + 31) / 32) * 32; // must be 32 multiple
+                    // by default _aligned_malloc returns void* (pointer to very first byte) so u cast it to T*
+                    m_data = static_cast<T*>(_aligned_malloc(aligned_bytes, 32));
+                }
+                else {
+                    // some CUDA stuff later
+                }
             }
-            return *this;
 
-        }
+            T* data() const {
+                return m_data;
+            }
+
+            int64_t size() const {
+                return m_size;
+            }
+
+            Device device() const {
+                return m_device;
+            }
+
+            ~Storage() {
+                _aligned_free(m_data); // accepts void* but any pointer can implicitly convert to void*
+            }
+
+        Storage() : m_data(nullptr), m_size(0), m_device(Device::CPU) {}
+        
+        Storage(const Storage&) = delete; // since we manually free memory copying should not exist.
+        Storage& operator=(const Storage&) = delete; // we dont even copy storage anywhere so its cool
+        
+        Storage(Storage&& other) : m_data(std::move(other.m_data)), m_size(other.m_size), m_device(other.m_device) {}
         Storage& operator=(Storage&& other) {
             if (this != &other) {
                 m_data = std::move(other.m_data);
+                m_size = other.m_size;
+                m_device = other.m_device;
             }
             return *this;
         } 
-
-        ~Storage() {
-            //std::cout << "Storage Destroyed" << std::endl;
-        }
     };
 
     struct TensorStateBase {

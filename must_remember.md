@@ -12,3 +12,7 @@ If it is not (say, Transpose) and m_parent has weird strides, swapping contiguou
 8) in-place optimization on AddNode if is_exclusive: If you got (a + b) + c, then (a + b) is an rvalue tensor. Nobody holds a map to it,
 unlike if it was temp = a + b and res = temp + c. Since m_left is only ever used to produce end result during realize, you can safely edit it because
 m_left inside node is the only place in universe where it exists. Nobody else will know, and addnode doesnt need it for anything else THEREFORE nobody needs it.
+9) m_storage of TensorState must be initialized with empty shared_ptr and not nullptr. If c = a + b and c has a nullptr to storage, then d = c.reshape happens, 
+and d keeps the nullptr. ReshapeNode has a copy of c, also with a nullptr. 
+When realize happens, c storage is filled with data. ReshapeNode has none, d has none, but should. Everything blows up.
+If there is a shared_ptr, its inside c, ReshapeNode, and d. Change immediately gets reflected.

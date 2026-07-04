@@ -13,6 +13,7 @@ DONE InPlace mutation on REALZIE TIME if refcount tensorstate == 1 and refcount 
 DONE Check if requires grad to do calculation inside node backward() function
 DONE Remove m_version from existence
 DONE Unary nodes (ReLU) + framework
+- Update whole initialization pipeline with new Storage.
 - SIMD contiguous fast paths (lobotomized_contiguous_alloc, apply_in_place, apply_out_of_place, apply_unary)
 - AVX 32/64 byte alignment (Storage prep for CUDA)
 - Memory pools (same shape math ran thousands of times)
