@@ -396,5 +396,9 @@ namespace gradc {
                     m_parent.accumulate_grad(relu_grad);
                 }
             }
+
+            std::vector<TensorStateBase*> get_input_states() override {
+                return {m_parent._get_state_base()};
+            }
     };
 } 

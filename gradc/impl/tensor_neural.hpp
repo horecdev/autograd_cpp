@@ -4,9 +4,7 @@
 #include "../graph.hpp"
 #include "tensor_utils.hpp"
 
-#include <cstdint>
 #include <memory>
-#include <vector>
 
 namespace gradc {
     template <typename T>
