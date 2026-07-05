@@ -236,7 +236,7 @@ namespace gradc {
                 if (m_state->m_creation_op != nullptr && m_state->m_is_realized != true) { // is not leaf and wasnt realized yet
                     Tensor computed_result = m_state->m_creation_op->realize();
                     if (m_state->m_storage != computed_result.m_state->m_storage) {
-                        m_state->m_storage->m_data = std::move(computed_result.m_state->m_storage->m_data);
+                        std::swap(m_state->m_storage->m_data, computed_result.m_state->m_storage->m_data);
                     }
                 }
 

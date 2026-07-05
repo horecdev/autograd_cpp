@@ -2,6 +2,7 @@
 #include <vector>
 #include <stdexcept> // IWYU pragma: keep
 #include "gradc/gradc.hpp" // IWYU pragma: keep
+#include "gradc/impl/tensor_utils.hpp"
 
 using namespace gradc;
 
@@ -12,39 +13,42 @@ int main() {
     Tensor<float> x({1, 3}, 4.0f, Device::CPU); 
     x.set_requires_grad(true);
 
-    Tensor<float> b({6}, 1.5f, Device::CPU);
-    b.set_requires_grad(true);
+    std::cout << "Before realize" << std::endl;
+    auto y = w * x;
+    y.realize();
+    std::cout << "after realize" << std::endl;
+    print_tensor(std::cout, y);
 
-    auto y = (w * x) + w; 
-    auto y_slice = y[Slice(0, 2), _]; 
-    auto y_reshaped = y_slice.reshape({6});
+    // auto y = (w * x) + w; 
+    // auto y_slice = y[Slice(0, 2), _]; 
+    // auto y_reshaped = y_slice.reshape({6});
     
-    std::vector<Tensor<float>> to_concat = {y_reshaped, b};
-    auto concat_res = lazy_concat(to_concat, 0); 
+    // std::vector<Tensor<float>> to_concat = {y_reshaped, b};
+    // auto concat_res = lazy_concat(to_concat, 0); 
     
-    auto loss = concat_res.sum({0}, false);
-    std:: cout << "before realize" << std::endl;
-    loss.realize();
+    // auto loss = concat_res.sum({0}, false);
+    // std:: cout << "before realize" << std::endl;
+    // loss.realize();
 
-    std::cout << "--- Forward Pass Result ---\nLoss: ";
-    print_tensor(std::cout, loss);
+    // std::cout << "--- Forward Pass Result ---\nLoss: ";
+    // print_tensor(std::cout, loss);
 
-    loss.accumulate_grad(Tensor<float>(1.0f, Device::CPU)); 
-    loss.backward();
+    // loss.accumulate_grad(Tensor<float>(1.0f, Device::CPU)); 
+    // loss.backward();
 
-    std::cout << "\n--- Gradients ---\n";
+    // std::cout << "\n--- Gradients ---\n";
     
-    std::cout << "Grad w (Row 2 sliced out, should be 0.0):\n";
-    w.grad().value().realize();
-    print_tensor(std::cout, w.grad().value());
+    // std::cout << "Grad w (Row 2 sliced out, should be 0.0):\n";
+    // w.grad().value().realize();
+    // print_tensor(std::cout, w.grad().value());
 
-    std::cout << "\nGrad x (Broadcasted, should be summed across rows 0 and 1):\n";
-    x.grad().value().realize();
-    print_tensor(std::cout, x.grad().value());
+    // std::cout << "\nGrad x (Broadcasted, should be summed across rows 0 and 1):\n";
+    // x.grad().value().realize();
+    // print_tensor(std::cout, x.grad().value());
 
-    std::cout << "\nGrad b (Passed through concat and sum, should be 1.0):\n";
-    b.grad().value().realize();
-    print_tensor(std::cout, b.grad().value());
+    // std::cout << "\nGrad b (Passed through concat and sum, should be 1.0):\n";
+    // b.grad().value().realize();
+    // print_tensor(std::cout, b.grad().value());
 
-    return 0;
+    // return 0;
 }
