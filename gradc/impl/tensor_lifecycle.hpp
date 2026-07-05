@@ -14,7 +14,7 @@ namespace gradc {
     
     template <typename T>
     Tensor<T>::Tensor(T value, Device device)
-        : m_shape({}), m_strides({}), m_offset(0), m_state(std::make_shared<TensorState<T>>(1, value, device)), m_requires_grad(false) {}
+        : m_shape({}), m_strides({}), m_offset(0), m_state(std::make_shared<TensorState<T>>(1, value, device, true, true)), m_requires_grad(false) {}
 
     template <typename T>
     Tensor<T>::Tensor(std::vector<int64_t> shape, T init_val, Device device) 
@@ -31,6 +31,22 @@ namespace gradc {
                 m_state = std::make_shared<TensorState<T>>(m_shape[0] * m_strides[0], init_val, device);
             }
         }
+
+    template <typename T>
+    Tensor<T>::Tensor(std::vector<int64_t> shape, Device device, UninitializedTag)
+        : m_shape(std::move(shape)), m_strides(std::ssize(m_shape)), m_offset(0), m_requires_grad(false) {
+            if (std::ssize(m_shape) == 0) { // a scalar (0-dimensional)
+                m_state = std::make_shared<TensorState<T>>(1, T(), device, true, false);
+            }
+            else {
+                m_strides[std::ssize(m_shape) - 1] = 1; 
+                for (int64_t i = std::ssize(m_shape) - 1; i > 0; --i) {
+                    m_strides[i - 1] = m_shape[i] * m_strides[i];
+                }
+                m_state = std::make_shared<TensorState<T>>(m_shape[0] * m_strides[0], T(), device, true, false);
+            }
+        }
+    
 
     template <typename T>
     Tensor<T>::Tensor(std::initializer_list<int64_t> shape, T init_val, Device device) : Tensor(std::vector<int64_t>(shape), init_val, device) {}

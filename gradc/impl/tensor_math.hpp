@@ -13,6 +13,7 @@
 namespace gradc {
     template <typename T, typename U>
     auto operator+(Tensor<T> left, Tensor<U> right) {
+        Device target_device = infer_assert_device(left, right);
         
         using PromotedT = std::common_type_t<T, U>;
 
@@ -27,7 +28,7 @@ namespace gradc {
         }
 
         bool requires_grad = p_left.m_requires_grad || p_right.m_requires_grad;
-        Tensor<PromotedT> new_tensor = Tensor<PromotedT>(target_shape, requires_grad, lazy, left.device());
+        Tensor<PromotedT> new_tensor = Tensor<PromotedT>(target_shape, requires_grad, lazy, target_device);
         new_tensor.m_state->m_creation_op = std::make_unique<AddNode<PromotedT>>(std::move(p_left), std::move(p_right), std::move(target_shape));
         return new_tensor;
     }
@@ -46,6 +47,8 @@ namespace gradc {
 
     template <typename T, typename U>
     auto operator*(Tensor<T> left, Tensor<U> right) {
+        Device target_device = infer_assert_device(left, right);
+        
         using PromotedT = std::common_type_t<T, U>;
 
         auto [p_left, p_right] = promote_to_common(std::move(left), std::move(right));
@@ -59,7 +62,7 @@ namespace gradc {
         }
 
         bool requires_grad = p_left.m_requires_grad || p_right.m_requires_grad;
-        Tensor<PromotedT> new_tensor = Tensor<PromotedT>(target_shape, requires_grad, lazy, left.device());
+        Tensor<PromotedT> new_tensor = Tensor<PromotedT>(target_shape, requires_grad, lazy, target_device);
         new_tensor.m_state->m_creation_op = std::make_unique<MulNode<PromotedT>>(std::move(p_left), std::move(p_right), std::move(target_shape));
         return new_tensor;
     }
@@ -78,6 +81,8 @@ namespace gradc {
 
     template <typename T, typename U>
     Tensor<T>& operator+=(Tensor<T>& main, Tensor<U> other) {
+        Device target_device = infer_assert_device(main, other);
+
         using PromotedT = std::common_type_t<T, U>;
         Tensor<PromotedT> p_other;
 
@@ -101,7 +106,7 @@ namespace gradc {
         }
 
         bool requires_grad = main.m_requires_grad || p_other.m_requires_grad;
-        std::shared_ptr<TensorState<T>> new_state = std::make_shared<TensorState<T>>(main._get_storage().size(), T(), main.device(), false);
+        std::shared_ptr<TensorState<T>> new_state = std::make_shared<TensorState<T>>(main._get_storage().size(), T(), target_device, false);
         new_state->m_creation_op = std::make_unique<AddNode<T>>(main, p_other, main.m_shape);
         main.m_state = std::move(new_state);
         main.m_requires_grad = requires_grad;
@@ -117,6 +122,8 @@ namespace gradc {
 
     template <typename T, typename U>
     Tensor<T>& operator*=(Tensor<T>& main, const Tensor<U> other) {
+        Device target_device = infer_assert_device(main, other);
+
         using PromotedT = std::common_type_t<T, U>;
         Tensor<PromotedT> p_other;
 
@@ -140,7 +147,7 @@ namespace gradc {
         }
 
         bool requires_grad = main.m_requires_grad || p_other.m_requires_grad;
-        std::shared_ptr<TensorState<T>> new_state = std::make_shared<TensorState<T>>(main._get_storage().size(), T(), main.device(), false);
+        std::shared_ptr<TensorState<T>> new_state = std::make_shared<TensorState<T>>(main._get_storage().size(), T(), target_device, false);
         new_state->m_creation_op = std::make_unique<MulNode<T>>(main, p_other, main.m_shape);
         main.m_state = std::move(new_state);
         main.m_requires_grad = requires_grad;

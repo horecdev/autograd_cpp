@@ -111,7 +111,10 @@ namespace gradc {
                             int64_t aligned_bytes = ((bytes + 31) / 32) * 32; // must be 32 multiple
                             // by default _aligned_malloc returns void* (pointer to very first byte) so u cast it to T*
                             m_data = static_cast<T*>(_aligned_malloc(aligned_bytes, 32));
-                            std::fill()(m_data, m_data + m_size, init_val); // m_data + m_size does pointer arithmetic (applies for sizeof)
+                            if (fill) {
+                                std::fill()(m_data, m_data + m_size, init_val); // m_data + m_size does pointer arithmetic (applies for sizeof)
+                            }
+                            
                         }
                         
                         else if (m_device == Device::CUDA) {
@@ -177,18 +180,15 @@ namespace gradc {
         std::shared_ptr<Storage<T>> m_storage; // nodes can share just storage
         std::unique_ptr<Node<T>> m_creation_op; // it makes no sense to share m_op, but not storage.
         bool m_is_realized;
-        std::optional<Tensor<T>> m_grad = std::nullopt; // every TensorState has grad. Even reshapes. 
+        std::optional<Tensor<T>> m_grad = std::nullopt; // every TensorState has grad. Even reshapes.
+
 
         TensorState() : m_storage(std::make_shared<Storage<T>>()), m_creation_op(nullptr), m_is_realized(false) {}
-
-        TensorState(int64_t size, T init_val = T(), Device device = Device::CPU, bool allocate = true) : m_storage(std::make_shared<Storage<T>>(size, init_val, device, allocate)), m_creation_op(nullptr), m_is_realized(allocate) {}
-
-        //TensorState(std::initializer_list<T> data, Device device = Device::CPU) : m_storage(std::make_shared<Storage<T>>(data, device)), m_creation_op(nullptr), m_is_realized(true) {}
-
+        TensorState(int64_t size, T init_val = T(), Device device = Device::CPU, bool allocate = true, bool fill = true) : m_storage(std::make_shared<Storage<T>>(size, init_val, device, allocate, fill)), m_creation_op(nullptr), m_is_realized(allocate) {}
         TensorState(std::shared_ptr<Storage<T>> storage) : m_storage(std::move(storage)), m_creation_op(nullptr), m_is_realized(false) {} // copy tensor storage, set m_r_op to be nothing
-
         TensorState(std::shared_ptr<Storage<T>> storage, std::unique_ptr<Node<T>> realize_op) : m_storage(std::move(storage)), m_creation_op(std::move(realize_op)), m_is_realized(false) {}
 
+        
         std::vector<TensorStateBase*> get_dependencies() const override {
             if (m_creation_op == nullptr) {
                 return std::vector<TensorStateBase*>();
@@ -257,9 +257,8 @@ namespace gradc {
             // LIFECYCLE 
             Tensor();
             explicit Tensor(T value, Device device = Device::CPU);
-            explicit Tensor(std::vector<int64_t> shape, T init_val, Device device);
-            explicit Tensor(std::vector<int64_t> shape, Device device);
-            explicit Tensor(std::vector<int64_t> shape, Device device, UninitializedTag);
+            explicit Tensor(std::vector<int64_t> shape, T init_val = T(), Device device = Device::CPU);
+            explicit Tensor(std::vector<int64_t> shape, Device device = Device::CPU, UninitializedTag = uninitialized);
 
             Tensor(std::initializer_list<int64_t> shape, T init_val = T(), Device device = Device::CPU);
             Tensor(std::vector<int64_t> shape, std::shared_ptr<Storage<T>> storage);

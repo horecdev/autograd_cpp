@@ -36,7 +36,7 @@ namespace gradc {
                 return apply_out_of_place(m_left, m_right, m_target_shape, [](T a, T b) {return a + b;});
             }
 
-            void backward(const Tensor<T>& out_grad) override {
+            void backward(const Tensor<T>& out_grad) override { // CPU child can only have CPU parents (enforced outside of graph nodes)
                 if (m_left.requires_grad()) {
                     m_left.accumulate_grad(unbroadcast_grad(out_grad, m_left.shape()));
                 }
@@ -126,13 +126,13 @@ namespace gradc {
             Tensor<T> realize() override {
                 m_parent.realize();
                 Tensor<T> summed = apply_reduction_operation(m_parent, m_reduction_metadata, T(), [](T a, T b){return a + b;});
-                apply_in_place(summed, Tensor<T>(static_cast<T>(m_reduction_metadata.reduced_vol)), [](T& a, T b){a /= b;});
+                apply_in_place(summed, Tensor<T>(static_cast<T>(m_reduction_metadata.reduced_vol), summed.device()), [](T& a, T b){a /= b;});
                 return summed;
             }
 
             void backward(const Tensor<T>& out_grad) override {
                 if (m_parent.requires_grad()) {
-                    Tensor<T> divided_grad = apply_out_of_place(out_grad, Tensor<T>(static_cast<T>(m_reduction_metadata.reduced_vol)), out_grad.shape(), [](T a, T b){return a / b;});
+                    Tensor<T> divided_grad = apply_out_of_place(out_grad, Tensor<T>(static_cast<T>(m_reduction_metadata.reduced_vol), m_parent.device()), out_grad.shape(), [](T a, T b){return a / b;});
                     Tensor<T> strided_mean_grad = Tensor<T>(m_parent.shape(), m_reduction_metadata.temp_strides, 0, divided_grad._get_storage(), false);
                     m_parent.accumulate_grad(strided_mean_grad);
                 }
@@ -288,7 +288,7 @@ namespace gradc {
 
             void backward(const Tensor<T>& out_grad) override {
                 if (m_parent.requires_grad()) {
-                    Tensor<T> full_grad = Tensor<T>(m_parent.shape(), T()); // Incoming grad is [5, 32] but the parent is [5, 10, 32]. 
+                    Tensor<T> full_grad = Tensor<T>(m_parent.shape(), T(), m_parent.device()); // Incoming grad is [5, 32] but the parent is [5, 10, 32]. 
                     // You add dimension back for the temporary tensor (filled with 0s).
                     Tensor<T> grad_view = create_lobotomized_slice_view(full_grad, m_descriptors);
                     apply_in_place(grad_view, out_grad, [](T& a, T b){a = b;}); // grad_view and out_grad have the same dimensions.
