@@ -13,7 +13,12 @@ DONE InPlace mutation on REALZIE TIME if refcount tensorstate == 1 and refcount 
 DONE Check if requires grad to do calculation inside node backward() function
 DONE Remove m_version from existence
 DONE Unary nodes (ReLU) + framework
-- Update Storage and TensorState (and where they are used) to function with aligned memory and device.
+DONE Update Tensor, TensorState and Storage constructors to support eager size/device propagation
+- Strip default CPU from constructor
+- Reflect changes inside lazy and eager operations to use the new constructors and pass correct parameters
+- Add assertions that devices are identical
+- Update all functions that actually operate on memory
+- Fix the fill / write inefficiency (1GB writes for 500MB tensor for stuff with alloc)
 - SIMD contiguous fast paths (lobotomized_contiguous_alloc, apply_in_place, apply_out_of_place, apply_unary)
 - AVX 32/64 byte alignment (Storage prep for CUDA)
 - Memory pools (same shape math ran thousands of times)

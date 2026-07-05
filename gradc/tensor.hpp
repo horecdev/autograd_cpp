@@ -2,6 +2,7 @@
 #include "node.hpp"
 #include "graph_fwd.hpp" // IWYU pragma: keep
 
+#include <algorithm>
 #include <cstdint>
 #include <iostream>
 #include <memory>
@@ -19,8 +20,11 @@ namespace gradc {
     struct LazyTag{};
     inline constexpr LazyTag lazy = LazyTag();
 
-    struct Placeholder{};
-    inline constexpr Placeholder _ = Placeholder(); // inline doesnt confuse linker if its #included in 2+ files.
+    struct UninitializedTag{};
+    inline constexpr UninitializedTag uninitialized = UninitializedTag();
+
+    struct AllSlice{};
+    inline constexpr AllSlice _ = AllSlice(); // inline doesnt confuse linker if its #included in 2+ files.
 
     enum IndexType {Single, Range, All};
 
@@ -40,7 +44,7 @@ namespace gradc {
         Slice m_slice_val;
 
         IndexDesc(int64_t value) : m_type(IndexType::Single), m_single_val(value) {}
-        IndexDesc(Placeholder) : m_type(IndexType::All) {}
+        IndexDesc(AllSlice) : m_type(IndexType::All) {}
         IndexDesc(Slice slice_value) : m_type(IndexType::Range), m_slice_val(std::move(slice_value)) {}
     };
 
@@ -98,32 +102,35 @@ namespace gradc {
             int64_t m_size = 0;
             Device m_device;
         public:
-            Storage(int64_t size, Device device = Device::CPU) : m_size(size), m_device(device) {
-                int64_t bytes = size * sizeof(T);
-
-                if (m_device == Device::CPU) {
-                    int64_t aligned_bytes = ((bytes + 31) / 32) * 32; // must be 32 multiple
-                    // by default _aligned_malloc returns void* (pointer to very first byte) so u cast it to T*
-                    m_data = static_cast<T*>(_aligned_malloc(aligned_bytes, 32));
-                }
-                else {
-                    // some CUDA stuff later
-                }
-            }
-
             Storage() : m_data(nullptr), m_size(0), m_device(Device::CPU) {}
 
-            Storage(int64_t size, T init_val = T(), Device device = Device::CPU) : m_size(size), m_device(device) {
+            Storage(int64_t size, T init_val = T(), Device device = Device::CPU, bool allocate = true, bool fill = true) : m_size(size), m_device(device) {
                 int64_t bytes = size * sizeof(T);
+                    if (allocate) {
+                        if (m_device == Device::CPU) {
+                            int64_t aligned_bytes = ((bytes + 31) / 32) * 32; // must be 32 multiple
+                            // by default _aligned_malloc returns void* (pointer to very first byte) so u cast it to T*
+                            m_data = static_cast<T*>(_aligned_malloc(aligned_bytes, 32));
+                            std::fill()(m_data, m_data + m_size, init_val); // m_data + m_size does pointer arithmetic (applies for sizeof)
+                        }
+                        
+                        else if (m_device == Device::CUDA) {
+                            // some CUDA stuff later
+                        }
+                    }
+            }
 
-                    if (m_device == Device::CPU) {
-                        int64_t aligned_bytes = ((bytes + 31) / 32) * 32; // must be 32 multiple
-                        // by default _aligned_malloc returns void* (pointer to very first byte) so u cast it to T*
-                        m_data = static_cast<T*>(_aligned_malloc(aligned_bytes, 32));
-                    }
-                    else {
-                        // some CUDA stuff later
-                    }
+            Storage(std::initializer_list<T> data, Device device = Device::CPU) : m_size(std::ssize(data)), m_device(device) {
+                if (m_size < 1) {
+                    throw std::runtime_error("Storage constructed with empty initializer_list. Use a different constructor.");
+                }
+
+                if (m_device == Device::CPU) {
+                    int64_t bytes = m_size * sizeof(T);
+                    int64_t aligned_bytes = ((bytes + 31) / 32) * 32;
+                    m_data = static_cast<T*>(_aligned_malloc(aligned_bytes, 32));
+                    std::memcpy(m_data, data.begin(), data.size() * sizeof(T));
+                }
             }
 
             T* data() const {
@@ -142,18 +149,18 @@ namespace gradc {
                 _aligned_free(m_data); // accepts void* but any pointer can implicitly convert to void*
             }
         
-        Storage(const Storage&) = delete; // since we manually free memory copying should not exist.
-        Storage& operator=(const Storage&) = delete; // we dont even copy storage anywhere so its cool
-        
-        Storage(Storage&& other) : m_data(std::move(other.m_data)), m_size(other.m_size), m_device(other.m_device) {}
-        Storage& operator=(Storage&& other) {
-            if (this != &other) {
-                m_data = std::move(other.m_data);
-                m_size = other.m_size;
-                m_device = other.m_device;
-            }
-            return *this;
-        } 
+            Storage(const Storage&) = delete; // since we manually free memory copying should not exist.
+            Storage& operator=(const Storage&) = delete; // we dont even copy storage anywhere so its cool
+            
+            Storage(Storage&& other) : m_data(std::move(other.m_data)), m_size(other.m_size), m_device(other.m_device) {}
+            Storage& operator=(Storage&& other) {
+                if (this != &other) {
+                    m_data = std::move(other.m_data);
+                    m_size = other.m_size;
+                    m_device = other.m_device;
+                }
+                return *this;
+            } 
     };
 
     struct TensorStateBase {
@@ -174,9 +181,9 @@ namespace gradc {
 
         TensorState() : m_storage(std::make_shared<Storage<T>>()), m_creation_op(nullptr), m_is_realized(false) {}
 
-        TensorState(int64_t size, T init_val = T()) : m_storage(std::make_shared<Storage<T>>(size, init_val)), m_creation_op(nullptr), m_is_realized(false) {}
-        
-        TensorState(std::vector<T>&& data) : m_storage(std::make_shared<Storage<T>>(std::move(data))), m_creation_op(nullptr), m_is_realized(false) {}
+        TensorState(int64_t size, T init_val = T(), Device device = Device::CPU, bool allocate = true) : m_storage(std::make_shared<Storage<T>>(size, init_val, device, allocate)), m_creation_op(nullptr), m_is_realized(allocate) {}
+
+        //TensorState(std::initializer_list<T> data, Device device = Device::CPU) : m_storage(std::make_shared<Storage<T>>(data, device)), m_creation_op(nullptr), m_is_realized(true) {}
 
         TensorState(std::shared_ptr<Storage<T>> storage) : m_storage(std::move(storage)), m_creation_op(nullptr), m_is_realized(false) {} // copy tensor storage, set m_r_op to be nothing
 
@@ -249,11 +256,14 @@ namespace gradc {
 
             // LIFECYCLE 
             Tensor();
-            explicit Tensor(T value);
-            explicit Tensor(std::vector<int64_t> shape, T init_val = T());
-            Tensor(std::initializer_list<int64_t> shape, T init_val = T()); // for {} constructing. 
+            explicit Tensor(T value, Device device = Device::CPU);
+            explicit Tensor(std::vector<int64_t> shape, T init_val, Device device);
+            explicit Tensor(std::vector<int64_t> shape, Device device);
+            explicit Tensor(std::vector<int64_t> shape, Device device, UninitializedTag);
+
+            Tensor(std::initializer_list<int64_t> shape, T init_val = T(), Device device = Device::CPU);
             Tensor(std::vector<int64_t> shape, std::shared_ptr<Storage<T>> storage);
-            Tensor(std::vector<int64_t> shape, bool requires_grad, LazyTag);
+            Tensor(std::vector<int64_t> shape, bool requires_grad, LazyTag, Device device = Device::CPU);
             Tensor(std::vector<int64_t> shape, std::vector<int64_t> strides, int64_t offset, std::shared_ptr<Storage<T>> storage, bool requires_grad);
             Tensor(std::vector<int64_t> shape, std::vector<int64_t> strides, int64_t offset, std::shared_ptr<TensorState<T>> state, bool requires_grad);
             ~Tensor();
@@ -278,6 +288,8 @@ namespace gradc {
             int64_t offset() const {return m_offset;}
 
             bool requires_grad() const {return m_requires_grad;}
+
+            Device device() const {return m_state->m_storage->device();}
 
             TensorStateBase* _get_state_base() const {
                 return m_state.get();
@@ -313,8 +325,15 @@ namespace gradc {
             }
 
             // SETTERS
-            void set_data(std::vector<T> data) {
-                this->m_state->m_storage->m_data = data; // copy vector
+            void set_data(std::initializer_list<T> data) {
+                if (std::ssize(data) != volume()) {
+                    throw std::runtime_error("set)data size mismatch.");
+                }
+
+                T* raw_ptr = m_state->m_storage->data();
+                for (int64_t i = 0; i < std::ssize(data); ++i) {
+                    raw_ptr[i] = data[i];
+                }
             }
             Tensor& set_requires_grad(bool value) {
                 m_requires_grad = validate_requires_grad(value);

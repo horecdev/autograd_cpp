@@ -13,26 +13,27 @@ namespace gradc {
     Tensor<T>::Tensor() : m_shape({}), m_strides({}), m_offset(0), m_state(nullptr), m_requires_grad(false) {} // default constructor
     
     template <typename T>
-    Tensor<T>::Tensor(T value) : m_shape({}), m_strides({}), m_offset(0), m_state(std::make_shared<TensorState<T>>(std::vector<T>(1, value))), m_requires_grad(false) {}
+    Tensor<T>::Tensor(T value, Device device)
+        : m_shape({}), m_strides({}), m_offset(0), m_state(std::make_shared<TensorState<T>>(1, value, device)), m_requires_grad(false) {}
 
     template <typename T>
-    Tensor<T>::Tensor(std::vector<int64_t> shape, T init_val) 
+    Tensor<T>::Tensor(std::vector<int64_t> shape, T init_val, Device device) 
         // can pass integer as m_strides, because it implicitly constructs a std::vector by just variable(arguments)
         : m_shape(std::move(shape)), m_strides(std::ssize(m_shape)), m_offset(0), m_requires_grad(false) {
             if (std::ssize(m_shape) == 0) { // a scalar (0-dimensional)
-                m_state = std::make_shared<TensorState<T>>(std::vector<T>(1, init_val));
+                m_state = std::make_shared<TensorState<T>>(1, init_val, device);
             }
             else {
                 m_strides[std::ssize(m_shape) - 1] = 1; 
                 for (int64_t i = std::ssize(m_shape) - 1; i > 0; --i) {
                     m_strides[i - 1] = m_shape[i] * m_strides[i];
                 }
-                m_state = std::make_shared<TensorState<T>>(std::vector<T>(m_shape[0] * m_strides[0], init_val));
+                m_state = std::make_shared<TensorState<T>>(m_shape[0] * m_strides[0], init_val, device);
             }
         }
 
     template <typename T>
-    Tensor<T>::Tensor(std::initializer_list<int64_t> shape, T init_val) : Tensor(std::vector<int64_t>(shape), init_val) {}
+    Tensor<T>::Tensor(std::initializer_list<int64_t> shape, T init_val, Device device) : Tensor(std::vector<int64_t>(shape), init_val, device) {}
 
     template <typename T> // makes a contiguous eager copy (figures out stides) with shared storage.
     Tensor<T>::Tensor(std::vector<int64_t> shape, std::shared_ptr<Storage<T>> storage) 
@@ -46,18 +47,18 @@ namespace gradc {
         }
 
     template <typename T>
-    Tensor<T>::Tensor(std::vector<int64_t> shape, bool requires_grad, LazyTag)
+    Tensor<T>::Tensor(std::vector<int64_t> shape, bool requires_grad, LazyTag, Device device)
         // can pass integer as m_strides, because it implicitly constructs a std::vector by just variable(arguments)
         : m_shape(std::move(shape)), m_strides(std::ssize(m_shape)), m_offset(0), m_requires_grad(validate_requires_grad(requires_grad)) {
             if (std::ssize(m_shape) == 0) { // a scalar (0-dimensional)
-                m_state = std::make_shared<TensorState<T>>();
+                m_state = std::make_shared<TensorState<T>>(1, T(), device, false);
             }
             else {
                 m_strides[std::ssize(m_shape) - 1] = 1; 
                 for (int64_t i = std::ssize(m_shape) - 1; i > 0; --i) {
                     m_strides[i - 1] = m_shape[i] * m_strides[i];
                 }
-                m_state = std::make_shared<TensorState<T>>();
+                m_state = std::make_shared<TensorState<T>>(m_shape[0] * m_strides[0], T(), device, false);
             }
         }
 
@@ -111,7 +112,7 @@ namespace gradc {
 
     template <typename T>
     Tensor<T> Tensor<T>::clone() const { 
-        Tensor<T> tensor_copy = Tensor(m_shape, m_requires_grad, lazy);
+        Tensor<T> tensor_copy = Tensor(m_shape, m_requires_grad, lazy, this->device());
         tensor_copy.m_state->m_creation_op = std::make_unique<CloneNode<T>>(*this);
         return tensor_copy;
     }
@@ -123,7 +124,7 @@ namespace gradc {
             return *this;
         }
         else {
-            Tensor<TargetT> new_tensor = Tensor<TargetT>(m_shape, m_requires_grad, lazy);
+            Tensor<TargetT> new_tensor = Tensor<TargetT>(m_shape, m_requires_grad, lazy, this->device());
             new_tensor.m_state->m_creation_op = std::make_unique<CastNode<T, TargetT>>(*this);
             return new_tensor;
         }

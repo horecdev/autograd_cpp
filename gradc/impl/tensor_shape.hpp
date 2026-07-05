@@ -12,7 +12,7 @@ namespace gradc {
     
     template <typename T>
     Tensor<T> Tensor<T>::contiguous() const {
-        Tensor result = Tensor(m_shape, m_requires_grad, lazy);
+        Tensor result = Tensor(m_shape, m_requires_grad, lazy, this->device());
         result.m_state->m_creation_op = std::make_unique<ContiguousNode<T>>(*this);
         return result;
     }
@@ -71,7 +71,7 @@ namespace gradc {
             requires_grad = requires_grad || parent.m_requires_grad;
         }
 
-        Tensor<T> result = Tensor<T>(final_shape, requires_grad, lazy);
+        Tensor<T> result = Tensor<T>(final_shape, requires_grad, lazy, tensor_list[0].device());
         result.m_state->m_creation_op = std::make_unique<ConcatNode<T>>(tensor_list, concat_dim, std::move(final_shape));
         
         return result;

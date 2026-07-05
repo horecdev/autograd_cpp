@@ -13,6 +13,7 @@
 namespace gradc {
     template <typename T, typename U>
     auto operator+(Tensor<T> left, Tensor<U> right) {
+        
         using PromotedT = std::common_type_t<T, U>;
 
         auto [p_left, p_right] = promote_to_common(std::move(left), std::move(right));
@@ -26,7 +27,7 @@ namespace gradc {
         }
 
         bool requires_grad = p_left.m_requires_grad || p_right.m_requires_grad;
-        Tensor<PromotedT> new_tensor = Tensor<PromotedT>(target_shape, requires_grad, lazy);
+        Tensor<PromotedT> new_tensor = Tensor<PromotedT>(target_shape, requires_grad, lazy, left.device());
         new_tensor.m_state->m_creation_op = std::make_unique<AddNode<PromotedT>>(std::move(p_left), std::move(p_right), std::move(target_shape));
         return new_tensor;
     }
@@ -34,13 +35,13 @@ namespace gradc {
     template <typename T, typename U>
     requires std::is_arithmetic_v<U>
     auto operator+(Tensor<T> left, U right_val) { // Tensor + scalar
-        return std::move(left) + Tensor<U>(right_val);
+        return std::move(left) + Tensor<U>(right_val, left.device());
     }
 
     template <typename T, typename U>
     requires std::is_arithmetic_v<T>
-    auto operator+(T right_val, Tensor<U> left) { // scalar + Tensor
-        return Tensor<T>(right_val) + std::move(left);
+    auto operator+(T left_val, Tensor<U> right) { // scalar + Tensor
+        return Tensor<T>(left_val, right.device()) + std::move(right);
     }
 
     template <typename T, typename U>
@@ -58,7 +59,7 @@ namespace gradc {
         }
 
         bool requires_grad = p_left.m_requires_grad || p_right.m_requires_grad;
-        Tensor<PromotedT> new_tensor = Tensor<PromotedT>(target_shape, requires_grad, lazy);
+        Tensor<PromotedT> new_tensor = Tensor<PromotedT>(target_shape, requires_grad, lazy, left.device());
         new_tensor.m_state->m_creation_op = std::make_unique<MulNode<PromotedT>>(std::move(p_left), std::move(p_right), std::move(target_shape));
         return new_tensor;
     }
@@ -66,13 +67,13 @@ namespace gradc {
     template <typename T, typename U>
     requires std::is_arithmetic_v<U>
     auto operator*(Tensor<T> left, U right_val) { // Tensor + scalar
-        return std::move(left) * Tensor<U>(right_val);
+        return std::move(left) * Tensor<U>(right_val, left.device());
     }
 
     template <typename T, typename U>
     requires std::is_arithmetic_v<T>
-    auto operator*(T right_val, Tensor<U> left) { // scalar + Tensor
-        return Tensor<T>(right_val) * std::move(left);
+    auto operator*(T left_val, Tensor<U> right) { // scalar + Tensor
+        return Tensor<T>(left_val, right.device()) * std::move(right);
     }
 
     template <typename T, typename U>
@@ -100,7 +101,7 @@ namespace gradc {
         }
 
         bool requires_grad = main.m_requires_grad || p_other.m_requires_grad;
-        std::shared_ptr<TensorState<T>> new_state = std::make_shared<TensorState<T>>();
+        std::shared_ptr<TensorState<T>> new_state = std::make_shared<TensorState<T>>(main._get_storage().size(), T(), main.device(), false);
         new_state->m_creation_op = std::make_unique<AddNode<T>>(main, p_other, main.m_shape);
         main.m_state = std::move(new_state);
         main.m_requires_grad = requires_grad;
@@ -111,7 +112,7 @@ namespace gradc {
     template <typename T, typename U>
     requires std::is_arithmetic_v<U>
     Tensor<T>& operator+=(Tensor<T>& main, U other_val) {
-        return main += Tensor<U>(other_val);
+        return main += Tensor<U>(other_val, main.device());
     }
 
     template <typename T, typename U>
@@ -139,7 +140,7 @@ namespace gradc {
         }
 
         bool requires_grad = main.m_requires_grad || p_other.m_requires_grad;
-        std::shared_ptr<TensorState<T>> new_state = std::make_shared<TensorState<T>>();
+        std::shared_ptr<TensorState<T>> new_state = std::make_shared<TensorState<T>>(main._get_storage().size(), T(), main.device(), false);
         new_state->m_creation_op = std::make_unique<MulNode<T>>(main, p_other, main.m_shape);
         main.m_state = std::move(new_state);
         main.m_requires_grad = requires_grad;
@@ -149,6 +150,6 @@ namespace gradc {
     template <typename T, typename U>
     requires std::is_arithmetic_v<U>
     Tensor<T>& operator*=(Tensor<T>& main, U other_val) {
-        return main *= Tensor<U>(other_val);
+        return main *= Tensor<U>(other_val, main.device());
     }
 }
