@@ -14,7 +14,7 @@ DONE Check if requires grad to do calculation inside node backward() function
 DONE Remove m_version from existence
 DONE Unary nodes (ReLU) + framework
 DONE Update Tensor, TensorState and Storage constructors to support eager size/device propagation
-- Reflect changes inside lazy and eager operations to use the new constructors and pass correct parameters
+DONE Reflect changes inside lazy and eager operations to use the new constructors and pass correct parameters
 - Add assertions that devices are identical
 - Update all functions that actually operate on memory
 - Fix the fill / write inefficiency (1GB writes for 500MB tensor for stuff with alloc)

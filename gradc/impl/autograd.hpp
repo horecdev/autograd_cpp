@@ -1,5 +1,4 @@
 #include "../tensor.hpp"
-#include "tensor_math.hpp"
 #include "tensor_utils.hpp"
 
 #include <unordered_set>

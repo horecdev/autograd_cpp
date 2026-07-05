@@ -2,7 +2,7 @@
 
 #include "../tensor.hpp"
 #include "../graph.hpp"
-#include "tensor_utils.hpp"
+#include "tensor_utils.hpp" // IWYU pragma: keep
 
 #include <memory>
 

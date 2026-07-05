@@ -96,74 +96,73 @@ namespace gradc {
     };
 
     template <typename T>
-    class Storage{
-        private:
-            T* m_data = nullptr; // ptr to start of chunk of memory
-            int64_t m_size = 0;
-            Device m_device;
-        public:
-            Storage() : m_data(nullptr), m_size(0), m_device(Device::CPU) {}
+    struct Storage{
+        T* m_data = nullptr; // ptr to start of chunk of memory
+        int64_t m_size = 0;
+        Device m_device;
 
-            Storage(int64_t size, T init_val = T(), Device device = Device::CPU, bool allocate = true, bool fill = true) : m_size(size), m_device(device) {
-                int64_t bytes = size * sizeof(T);
-                    if (allocate) {
-                        if (m_device == Device::CPU) {
-                            int64_t aligned_bytes = ((bytes + 31) / 32) * 32; // must be 32 multiple
-                            // by default _aligned_malloc returns void* (pointer to very first byte) so u cast it to T*
-                            m_data = static_cast<T*>(_aligned_malloc(aligned_bytes, 32));
-                            if (fill) {
-                                std::fill()(m_data, m_data + m_size, init_val); // m_data + m_size does pointer arithmetic (applies for sizeof)
-                            }
-                            
+        Storage() : m_data(nullptr), m_size(0), m_device(Device::CPU) {}
+
+        Storage(int64_t size, T init_val = T(), Device device = Device::CPU, bool allocate = true, bool fill = true) : m_size(size), m_device(device) {
+            int64_t bytes = size * sizeof(T);
+                if (allocate) {
+                    if (m_device == Device::CPU) {
+                        int64_t aligned_bytes = ((bytes + 31) / 32) * 32; // must be 32 multiple
+                        // by default _aligned_malloc returns void* (pointer to very first byte) so u cast it to T*
+                        m_data = static_cast<T*>(_aligned_malloc(aligned_bytes, 32));
+                        if (fill) {
+                            std::fill(m_data, m_data + m_size, init_val); // m_data + m_size does pointer arithmetic (applies for sizeof)
                         }
                         
-                        else if (m_device == Device::CUDA) {
-                            // some CUDA stuff later
-                        }
                     }
-            }
-
-            Storage(std::initializer_list<T> data, Device device = Device::CPU) : m_size(std::ssize(data)), m_device(device) {
-                if (m_size < 1) {
-                    throw std::runtime_error("Storage constructed with empty initializer_list. Use a different constructor.");
+                    
+                    else if (m_device == Device::CUDA) {
+                        // some CUDA stuff later
+                    }
                 }
+        }
 
-                if (m_device == Device::CPU) {
-                    int64_t bytes = m_size * sizeof(T);
-                    int64_t aligned_bytes = ((bytes + 31) / 32) * 32;
-                    m_data = static_cast<T*>(_aligned_malloc(aligned_bytes, 32));
-                    std::memcpy(m_data, data.begin(), data.size() * sizeof(T));
-                }
+        Storage(std::initializer_list<T> data, Device device = Device::CPU) : m_size(std::ssize(data)), m_device(device) {
+            if (m_size < 1) {
+                throw std::runtime_error("Storage constructed with empty initializer_list. Use a different constructor.");
             }
 
-            T* data() const {
-                return m_data;
+            if (m_device == Device::CPU) {
+                int64_t bytes = m_size * sizeof(T);
+                int64_t aligned_bytes = ((bytes + 31) / 32) * 32;
+                m_data = static_cast<T*>(_aligned_malloc(aligned_bytes, 32));
+                std::memcpy(m_data, data.begin(), data.size() * sizeof(T));
             }
+        }
 
-            int64_t size() const {
-                return m_size;
-            }
+        T* data() const {
+            return m_data;
+        }
 
-            Device device() const {
-                return m_device;
-            }
+        int64_t size() const {
+            return m_size;
+        }
 
-            ~Storage() {
-                _aligned_free(m_data); // accepts void* but any pointer can implicitly convert to void*
-            }
+        Device device() const {
+            return m_device;
+        }
+
+        ~Storage() {
+            _aligned_free(m_data); // accepts void* but any pointer can implicitly convert to void*
+        }
+    
+        Storage(const Storage&) = delete; // since we manually free memory copying should not exist.
+        Storage& operator=(const Storage&) = delete; // we dont even copy storage anywhere so its cool
         
-            Storage(const Storage&) = delete; // since we manually free memory copying should not exist.
-            Storage& operator=(const Storage&) = delete; // we dont even copy storage anywhere so its cool
-            
-            Storage(Storage&& other) : m_data(std::move(other.m_data)), m_size(other.m_size), m_device(other.m_device) {}
-            Storage& operator=(Storage&& other) {
-                if (this != &other) {
-                    m_data = std::move(other.m_data);
-                    m_size = other.m_size;
-                    m_device = other.m_device;
-                }
-                return *this;
-            } 
+        Storage(Storage&& other) : m_data(std::move(other.m_data)), m_size(other.m_size), m_device(other.m_device) {}
+        Storage& operator=(Storage&& other) {
+            if (this != &other) {
+                m_data = std::move(other.m_data);
+                m_size = other.m_size;
+                m_device = other.m_device;
+            }
+            return *this;
+        } 
     };
 
     struct TensorStateBase {
@@ -188,7 +187,7 @@ namespace gradc {
         TensorState(std::shared_ptr<Storage<T>> storage) : m_storage(std::move(storage)), m_creation_op(nullptr), m_is_realized(false) {} // copy tensor storage, set m_r_op to be nothing
         TensorState(std::shared_ptr<Storage<T>> storage, std::unique_ptr<Node<T>> realize_op) : m_storage(std::move(storage)), m_creation_op(std::move(realize_op)), m_is_realized(false) {}
 
-        
+
         std::vector<TensorStateBase*> get_dependencies() const override {
             if (m_creation_op == nullptr) {
                 return std::vector<TensorStateBase*>();
@@ -380,8 +379,7 @@ namespace gradc {
             template <typename U> friend Tensor<U> lobotomized_concat_alloc(const std::vector<Tensor<U>>& tensor_list, int64_t concat_dim, const std::vector<int64_t>& final_shape);
             template <typename U> friend std::ostream& print_tensor(std::ostream& stream, const Tensor<U>& source, PrintOptions opts);
             template <typename U> friend void print_dim(std::ostream& stream, const Tensor<U>& source, const PrintOptions& opts, int64_t current_dim, int64_t base_offset, bool is_last);
-
-            template <typename U> friend Tensor<U> unbroadcast_grad(const Tensor<U>& raw_grad, const Tensor<U>& parent);
+            template <typename U> friend Tensor<U> unbroadcast_grad(const Tensor<U>& raw_grad, const std::vector<int64_t>& orig_shape);
             template <typename U> friend Tensor<U> lazy_concat(std::vector<Tensor<U>>& tensor_list, int64_t concat_dim);
 
             template <typename TargetT> Tensor<TargetT> cast() const;

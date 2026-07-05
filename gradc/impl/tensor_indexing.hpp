@@ -117,8 +117,8 @@ namespace gradc {
     template <typename T>
     T Tensor<T>::item() const {
         if (std::ssize(m_shape) == 0) {
-            if (m_state->m_storage->m_data.empty()) {
-                throw std::runtime_error("Called .item() on a tensor without data.");
+            if (m_state->m_storage->data() == nullptr) {
+                throw std::runtime_error("Called .item() on a tensor with size of 0.");
             }
             return (m_state->m_storage->m_data)[m_offset];
         }
