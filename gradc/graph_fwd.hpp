@@ -1,5 +1,7 @@
 #pragma once
 
+#include "graph.hpp"
+
 namespace gradc {
     template <typename T> class AddNode;
     template <typename T> class MulNode;

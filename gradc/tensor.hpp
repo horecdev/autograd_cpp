@@ -90,10 +90,7 @@ namespace gradc {
         else return DType::Unknown;
     }
 
-    enum class Device {
-        CPU,
-        CUDA
-    };
+    enum class Device {CPU, CUDA};
 
     template <typename T>
     struct Storage{
