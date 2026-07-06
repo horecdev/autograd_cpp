@@ -7,9 +7,6 @@ namespace gradc {
     struct TensorStateBase;
 
     template <typename T>
-    struct TensorState;
-
-    template <typename T>
     class Tensor;
 
     template <typename T>

@@ -1,10 +1,7 @@
 #pragma once
 
-#include "../tensor.hpp"
-#include "../graph.hpp"
-#include "tensor_utils.hpp" // IWYU pragma: keep
-
-#include <memory>
+#include "../core/tensor.hpp"
+#include "../graph/nodes/unary_nodes.hpp"
 
 namespace gradc {
     template <typename T>

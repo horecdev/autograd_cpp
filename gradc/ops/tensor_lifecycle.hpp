@@ -1,12 +1,6 @@
 #pragma once
 
-#include "../tensor.hpp"
-#include "../graph.hpp"
-
-#include <initializer_list>
-#include <memory>
-#include <utility>
-#include <vector>
+#include "../core/tensor.hpp"
 
 namespace gradc {
     template <typename T>
@@ -124,25 +118,5 @@ namespace gradc {
             m_requires_grad = source.m_requires_grad;
         }   
         return *this;
-    }
-
-    template <typename T>
-    Tensor<T> Tensor<T>::clone() const { 
-        Tensor<T> tensor_copy = Tensor(m_shape, m_requires_grad, lazy, this->device());
-        tensor_copy.m_state->m_creation_op = std::make_unique<CloneNode<T>>(*this);
-        return tensor_copy;
-    }
-
-    template <typename T>
-    template <typename TargetT>
-    Tensor<TargetT> Tensor<T>::cast() const {
-        if constexpr (std::is_same_v<T, TargetT>) {
-            return *this;
-        }
-        else {
-            Tensor<TargetT> new_tensor = Tensor<TargetT>(m_shape, m_requires_grad, lazy, this->device());
-            new_tensor.m_state->m_creation_op = std::make_unique<CastNode<T, TargetT>>(*this);
-            return new_tensor;
-        }
     }
 }

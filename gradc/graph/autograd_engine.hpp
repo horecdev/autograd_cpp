@@ -1,9 +1,8 @@
-#include "../tensor.hpp"
-#include "tensor_utils.hpp"
+#pragma once
+
+#include "../core/tensor.hpp"
 
 #include <unordered_set>
-#include <vector>
-#include <algorithm>
 
 namespace gradc {
     // If Y1, Y2 depend on X:
@@ -36,7 +35,7 @@ namespace gradc {
             }
     };
 
-
+    
     template <typename T>
     void Tensor<T>::accumulate_grad(const Tensor<T>& incoming_grad) {
         Device target_device = infer_assert_device(*this, incoming_grad);
@@ -68,4 +67,3 @@ namespace gradc {
         m_state->m_grad = std::nullopt;
     }
 }
-

@@ -18,9 +18,11 @@ DONE Update Tensor, TensorState constructors to support eager size/device propag
 DONE Reflect changes inside lazy and eager operations to use the new constructors and pass correct parameters
 DONE Add assertions that devices are identical
 DONE Fix the fill / write inefficiency (1GB writes for 500MB tensor for stuff with alloc) for CPU
-- BIG REFACTOR (hide backend from frontent)
-- Move odometer loops to cpu_backend.hpp
-- SIMD contiguous fast paths (lobotomized_contiguous_alloc, apply_in_place, apply_out_of_place, apply_unary)
+- BIG REFACTOR (hide backend from frontend)
+- Make Contiguous alloc a dispatcher to unary
+- Write 4 dispatchers (out of, in, reduce, unary)
+- Compile this big ass codebase
+- SIMD contiguous fast paths (apply_in_place, apply_out_of_place, apply_unary)
 - CUDA BRIDGE / UTILS .to() etc.
 - Memory pools (same shape math ran thousands of times)
 - CUDA

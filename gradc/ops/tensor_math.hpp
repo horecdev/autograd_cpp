@@ -1,14 +1,7 @@
 #pragma once
 
-#include "../tensor.hpp"
-#include "../graph.hpp"
-#include "tensor_utils.hpp"
-
-#include <memory>
-#include <stdexcept>
-#include <type_traits>
-#include <utility>
-#include <vector>
+#include "../core/tensor.hpp"
+#include "../graph/nodes/math_nodes.hpp"
 
 namespace gradc {
     template <typename T, typename U>

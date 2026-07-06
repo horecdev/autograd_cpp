@@ -1,15 +1,10 @@
 #pragma once
 
-#include "../tensor.hpp"
-#include "../graph.hpp"
-#include "tensor_utils.hpp"
-
-#include <cstdint>
-#include <memory>
-#include <vector>
+#include "../core/tensor.hpp"
+#include "../graph/nodes/memory_nodes.hpp"
 
 namespace gradc {
-    
+
     template <typename T>
     Tensor<T> Tensor<T>::contiguous() const {
         Tensor result = Tensor(m_shape, m_requires_grad, lazy, this->device());
@@ -17,36 +12,26 @@ namespace gradc {
         return result;
     }
 
-    template <typename T>
-    Tensor<T> Tensor<T>::transpose(int64_t dim0, int64_t dim1) const {
-        Tensor<T> result = lobotomized_transpose_view(*this, dim0, dim1);
-        result.m_state->m_creation_op = std::make_unique<TransposeNode<T>>(*this, dim0, dim1); 
-        result.m_requires_grad = m_requires_grad;
-        return result;
-    }
 
     template <typename T>
-    Tensor<T> Tensor<T>::permute(const std::vector<int64_t>& axes) const {
-        Tensor<T> permuted = lobotomized_permute_view(*this, axes);
-        permuted.m_state->m_creation_op = std::make_unique<PermuteNode<T>>(*this, axes);
-        permuted.m_requires_grad = m_requires_grad;
-        return permuted;
+    Tensor<T> Tensor<T>::clone() const { 
+        Tensor<T> tensor_copy = Tensor(m_shape, m_requires_grad, lazy, this->device());
+        tensor_copy.m_state->m_creation_op = std::make_unique<CloneNode<T>>(*this);
+        return tensor_copy;
     }
 
+
+
     template <typename T>
-    Tensor<T> Tensor<T>::reshape(const std::vector<int64_t>& target_shape) const {
-        if (this->is_contiguous()) {
-            Tensor<T> reshaped = lobotomized_reshape_view(*this, target_shape);
-            reshaped.m_state->m_creation_op = std::make_unique<ReshapeNode<T>>(*this);
-            reshaped.m_requires_grad = m_requires_grad;
-            return reshaped;
+    template <typename TargetT>
+    Tensor<TargetT> Tensor<T>::cast() const {
+        if constexpr (std::is_same_v<T, TargetT>) {
+            return *this;
         }
         else {
-            Tensor<T> new_contig = this->contiguous();
-            Tensor<T> reshaped = lobotomized_reshape_view(new_contig, target_shape);
-            reshaped.m_state->m_creation_op = std::make_unique<ReshapeNode<T>>(new_contig);
-            reshaped.m_requires_grad = new_contig.m_requires_grad;
-            return reshaped;
+            Tensor<TargetT> new_tensor = Tensor<TargetT>(m_shape, m_requires_grad, lazy, this->device());
+            new_tensor.m_state->m_creation_op = std::make_unique<CastNode<T, TargetT>>(*this);
+            return new_tensor;
         }
     }
 
@@ -78,4 +63,7 @@ namespace gradc {
         
         return result;
     }
+
+    
+
 }

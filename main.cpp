@@ -1,7 +1,4 @@
-#include <iostream>
-#include <vector>
-#include <stdexcept>
-#include "gradc/gradc.hpp"
+#include "gradc/gradc.hpp" // IWYU pragma: keep
 
 using namespace gradc;
 

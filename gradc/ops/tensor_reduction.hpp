@@ -1,6 +1,7 @@
-#include "../tensor.hpp"
-#include "../graph.hpp"
-#include "tensor_utils.hpp"
+#pragma once
+
+#include "../core/tensor.hpp"
+#include "../graph/nodes/reduce_nodes.hpp"
 
 namespace gradc {
     template <typename T>
