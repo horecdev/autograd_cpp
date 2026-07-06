@@ -147,7 +147,37 @@ namespace gradc::cpu {
     }
 
     template <typename T, typename Func>
-    inline Tensor<T> apply_reduction_operation(const Tensor<T>& source, const ReductionMetadata& reduction_metadata, T init_value, Func op) {
+    void apply_unary_in_place(Tensor<T>& source, Func op) {
+        if (source.m_shape.empty()) {
+            op(source.m_state->m_storage->m_data[source.m_offset]);
+            return;
+        }
+
+        if (source.is_contiguous()) {
+            //fast path
+        }
+
+        const int64_t n_dim = std::ssize(source.m_shape);
+        std::vector<int64_t> odometer(n_dim, 0);
+        while (odometer[0] < source.m_shape[0]) {
+            int64_t strided_idx = source.m_offset; 
+
+            for (int64_t i = 0; i < n_dim; ++i) {
+                strided_idx += odometer[i] * source.m_strides[i];
+            }
+            op((source.m_state->m_storage->m_data)[strided_idx]);
+            ++odometer[n_dim - 1];
+            int64_t i = n_dim - 1;
+            while ((odometer[i] == source.m_shape[i]) && i > 0) {
+                odometer[i] = 0;
+                ++odometer[i - 1];
+                --i;
+            }
+        }
+    }
+
+    template <typename T, typename Func>
+    Tensor<T> apply_reduction_operation(const Tensor<T>& source, const ReductionMetadata& reduction_metadata, T init_value, Func op) {
         const int64_t n_dim = std::ssize(source.m_shape);
         if (n_dim == 0) {
             throw std::runtime_error("Tried reducing a 0-Dimensional Tensor.");

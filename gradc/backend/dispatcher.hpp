@@ -1,5 +1,6 @@
 #pragma once
 
+#include "op_types.hpp"
 #include "../core/tensor.hpp"
 
 namespace gradc {
@@ -23,5 +24,10 @@ namespace gradc {
         }
 
         return target_device;
+    }
+
+    template <typename T>
+    inline void dispatch(Device device, UnaryOp un_op, Tensor<T>& in, Tensor<T>& out) {
+        
     }
 }

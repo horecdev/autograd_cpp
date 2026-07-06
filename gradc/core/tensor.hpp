@@ -141,6 +141,7 @@ namespace gradc {
             template <typename T1, typename T2, typename Func> friend void apply_in_place(Tensor<T1>& left, const Tensor<T2>& right, Func op);
             template <typename U, typename Func> friend Tensor<U> apply_out_of_place(const Tensor<U>& left, const Tensor<U>& right, const std::vector<int64_t>& target_shape, Func op);
             template <typename U, typename Func> friend Tensor<U> apply_reduction_operation(const Tensor<U>& source, const ReductionMetadata& reduction_metadata, U init_value, Func op);
+            template <typename U, typename Func> friend void apply_unary_in_place(Tensor<T> &source, Func op);
             template <typename U, typename Func> friend Tensor<U> apply_unary_out_of_place(const Tensor<U>& source, Func op);
 
             template <typename U, typename W> friend auto operator+(Tensor<U> left, Tensor<W> right); // we befriend whole family of functions named operator+. 
