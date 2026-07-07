@@ -116,7 +116,7 @@ namespace gradc {
             m_offset = source.m_offset;
             m_state = std::move(source.m_state);
             m_requires_grad = source.m_requires_grad;
-        }   
+        }
         return *this;
     }
 }

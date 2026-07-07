@@ -137,26 +137,24 @@ namespace gradc {
     Tensor<OutT> lobotomized_cast_alloc(const Tensor<InT>& source) {
         // source can have weird strides, but result is contiguous
         Tensor<OutT> result = Tensor<OutT>(source.m_shape, source.device(), uninitialized);
-        apply_in_place(result, source, [](OutT& a, InT b){a = static_cast<OutT>(b);});
-
+        dispatch_cast(source.device(), result, source);
         return result;
     }
 
     template <typename T>
     Tensor<T> lobotomized_concat_alloc(const std::vector<Tensor<T>>& tensor_list, int64_t concat_dim, const std::vector<int64_t>& final_shape) {
-        Device target_device = infer_assert_device(tensor_list);
-
         // target_shape must be known and concat_dim must be normalized already.
+        Device target_device = tensor_list[0].device();
         Tensor<T> result = Tensor<T>(final_shape, target_device, uninitialized);
         int64_t current_offset = 0;
 
         for (const Tensor<T>& parent : tensor_list) {
             std::vector<int64_t> view_shape = parent.m_shape;
 
-            Tensor<T> chunk_view(std::move(view_shape), result.m_strides, current_offset, result.m_state->m_storage, false);
-            // by keeping strides it makes apply_in_place naturally skip indices for next tensors in list
+            Tensor<T> chunk_view = Tensor<T>(std::move(view_shape), result.m_strides, current_offset, result.m_state->m_storage, false);
+            // by keeping strides it makes apply func naturally skip indices for next tensors in list
 
-            apply_in_place(chunk_view, parent, [](T& a, T b){a = b;});
+            dispatch(target_device, UnaryOp::Identity, chunk_view, parent);
 
             current_offset += parent.m_shape[concat_dim] * result.m_strides[concat_dim];
             // if you have, say, 10, 5, 7 split into [10, 2, 7] and [10, 3, 7], increase offset, then you start writing at [0, 2, 0]. You never go back to [0, 0, 0] or [0, 1, 0]

@@ -16,7 +16,9 @@ namespace gradc {
 
             Tensor<T> realize() override {
                 m_parent.realize();
-                return apply_reduction_operation(m_parent, m_reduction_metadata, T(), [](T a, T b){return a + b;});
+                Tensor<T> result = Tensor<T>(m_reduction_metadata.result_shape, m_parent.device(), uninitialized);
+                dispatch(m_parent.device(), ReduceOp::Sum, T(), m_reduction_metadata, result, m_parent);
+                return result;
             }
 
             void backward(const Tensor<T>& out_grad) override {

@@ -178,7 +178,7 @@ namespace gradc {
     template <typename OutT, typename InT>
     inline void dispatch_cast(Device device, Tensor<OutT>& out, const Tensor<InT>& in) {
         if (device == Device::CPU) {
-            cpu::apply_unary_out_of_place(out, in, [](T a){return static_cast<OutT>(a);});
+            cpu::apply_unary_out_of_place(out, in, [](InT a){return static_cast<OutT>(a);});
         }
     }
 

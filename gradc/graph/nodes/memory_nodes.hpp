@@ -15,7 +15,9 @@ namespace gradc {
 
             Tensor<T> realize() override {
                 m_parent.realize();
-                return lobotomized_contiguous_alloc(m_parent); // does not copy whole data for a slice
+                Tensor<T> result = Tensor<T>(m_parent.shape(), m_parent.device(), uninitialized);
+                dispatch(m_parent.device(), UnaryOp::Identity, result, m_parent);
+                return result;
             }
 
             void backward(const Tensor<T>& out_grad) override {
@@ -38,7 +40,9 @@ namespace gradc {
 
             Tensor<T> realize() override {
                 m_parent.realize();
-                return lobotomized_contiguous_alloc(m_parent);
+                Tensor<T> result = Tensor<T>(m_parent.shape(), m_parent.device(), uninitialized);
+                dispatch(m_parent.device(), UnaryOp::Identity, result, m_parent);
+                return result;
             }
 
             void backward(const Tensor<T>& out_grad) override {
@@ -61,13 +65,15 @@ namespace gradc {
 
             Tensor<OutT> realize() override {
                 m_parent.realize();
-                Tensor<OutT> result = lobotomized_cast_alloc<InT, OutT>(m_parent);
+                Tensor<OutT> result = Tensor<OutT>(m_parent.shape(), m_parent.device(), uninitialized); 
+                dispatch_cast(m_parent.device(), result, m_parent);
                 return result;
             }
 
             void backward(const Tensor<OutT>& out_grad) override {
                 if (m_parent.requires_grad()) {
-                    Tensor<InT> cast_grad = lobotomized_cast_alloc<OutT, InT>(out_grad);
+                    Tensor<InT> cast_grad = Tensor<InT>(out_grad.shape(), out_grad.device(), uninitialized);
+                    dispatch_cast(out_grad.device(), cast_grad, out_grad);
                     m_parent.accumulate_grad(cast_grad);
                 }
             }
