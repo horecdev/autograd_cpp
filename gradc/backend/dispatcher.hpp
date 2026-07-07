@@ -1,10 +1,14 @@
 #pragma once
 
 #include "op_types.hpp"
-#include "../core/tensor.hpp"
 #include "cpu/cpu_apply.hpp"
+#include "../core/tensor.hpp"
+#include "../core/types.hpp"
+
 #include <cmath>
+#include <cstdint>
 #include <stdexcept>
+#include <vector>
 
 namespace gradc {
     template <typename T1, typename T2>

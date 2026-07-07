@@ -6,12 +6,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_executable(tensor 
-    gradc/tensor.hpp
     main.cpp
+    gradc/gradc.hpp
 )
 
-# 2. Tell the compiler where to look for your headers
-target_include_directories(tensor PRIVATE gradc)
+# Fix: Tell the compiler to look in the root directory, so "gradc/..." paths work
+target_include_directories(tensor PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(MSVC)
     target_compile_options(tensor PRIVATE /fsanitize=address /Zi /W4)

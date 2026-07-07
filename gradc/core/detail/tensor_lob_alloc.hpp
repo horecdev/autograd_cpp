@@ -3,8 +3,12 @@
 #include "../types.hpp"
 #include "../tensor.hpp"
 #include "../../backend/dispatcher.hpp"
+#include "shape_inference.hpp"
 
-
+#include <cstdint>
+#include <stdexcept>
+#include <utility>
+#include <vector>
 
 namespace gradc {
     

@@ -20,9 +20,11 @@ DONE Add assertions that devices are identical
 DONE Fix the fill / write inefficiency (1GB writes for 500MB tensor for stuff with alloc) for CPU
 DONE apply_unary_in_place + make contiguous use it
 DONE BIG REFACTOR (hide backend from frontend)
-- Update the out of, in, reduce etc. to write to uninitialized memory. think of the issue where memory is initialized and scalars.
-- Write 6 dispatchers (out of, in, reduce, unary in, unary out of, layout) - everything that copies/creates new data gets a dispatcher to cuda/cpu
-- Compile this big ass codebase and add missing dependencies + solve them
+DONE Update the out of, in, reduce etc. to write to uninitialized memory. think of the issue where memory is initialized and scalars.
+DONE Write 6 dispatchers (out of, in, reduce, unary in, unary out of, layout) - everything that copies/creates new data gets a dispatcher to cuda/cpu
+- Split into lob_alloc and lob_view files the lobotomized funcs so you can include views inside cpu_apply (they dont need dispatchers)
+- Make every file self-contained 
+- Compile this big ass codebase
 - SIMD contiguous fast paths (apply_in_place, apply_out_of_place, apply_unary)
 - CUDA BRIDGE / UTILS .to() etc.
 - Memory pools (same shape math ran thousands of times)
