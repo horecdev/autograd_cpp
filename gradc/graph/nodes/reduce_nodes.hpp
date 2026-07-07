@@ -42,14 +42,16 @@ namespace gradc {
 
             Tensor<T> realize() override {
                 m_parent.realize();
-                Tensor<T> summed = apply_reduction_operation(m_parent, m_reduction_metadata, T(), [](T a, T b){return a + b;});
-                apply_in_place(summed, Tensor<T>(static_cast<T>(m_reduction_metadata.reduced_vol), summed.device()), [](T& a, T b){a /= b;});
+                Tensor<T> summed = Tensor<T>(m_reduction_metadata.result_shape, m_parent.device(), uninitialized);
+                dispatch(m_parent.device(), ReduceOp::Sum, T(), m_reduction_metadata, summed, m_parent);
+                dispatch(m_parent.device(), BinaryOpInPlace::Div, summed, Tensor<T>(static_cast<T>(m_reduction_metadata.reduced_vol), m_parent.device()));
                 return summed;
             }
 
             void backward(const Tensor<T>& out_grad) override {
                 if (m_parent.requires_grad()) {
-                    Tensor<T> divided_grad = apply_out_of_place(out_grad, Tensor<T>(static_cast<T>(m_reduction_metadata.reduced_vol), m_parent.device()), out_grad.shape(), [](T a, T b){return a / b;});
+                    Tensor<T> divided_grad = Tensor<T>(out_grad.shape(), out_grad.device(), uninitialized);
+                    dispatch(out_grad.device(), BinaryOpInPlace::Div, divided_grad, Tensor<T>(static_cast<T>(m_reduction_metadata.reduced_vol)));
                     Tensor<T> strided_mean_grad = Tensor<T>(m_parent.shape(), m_reduction_metadata.temp_strides, 0, divided_grad._get_storage(), false);
                     m_parent.accumulate_grad(strided_mean_grad);
                 }

@@ -104,10 +104,11 @@ namespace gradc {
 
             void backward(const Tensor<T>& out_grad) override {
                 if (m_parent.requires_grad()) {
-                    Tensor<T> full_grad = Tensor<T>(m_parent.shape(), T(), m_parent.device()); // Incoming grad is [5, 32] but the parent is [5, 10, 32]. 
+                    Tensor<T> full_grad = Tensor<T>(m_parent.shape(), T(), out_grad.device()); // Incoming grad is [5, 32] but the parent is [5, 10, 32]. 
                     // You add dimension back for the temporary tensor (filled with 0s).
                     Tensor<T> grad_view = create_lobotomized_slice_view(full_grad, m_descriptors);
-                    apply_in_place(grad_view, out_grad, [](T& a, T b){a = b;}); // grad_view and out_grad have the same dimensions.
+                    dispatch(out_grad.device(), UnaryOp::Identity, grad_view, out_grad);
+                    // grad_view and out_grad have the same dimensions.
                     // grad_view has buffer of full_grad that matches shape of m_parent, so in-place assignment actually edits full_grad.
                     m_parent.accumulate_grad(full_grad);
                 }
