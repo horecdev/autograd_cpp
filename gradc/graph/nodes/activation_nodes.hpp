@@ -15,12 +15,15 @@ namespace gradc {
 
             Tensor<T> realize() override {
                 m_parent.realize();
-                return apply_unary_out_of_place(m_parent, [](T a){return a > 0 ? a : 0;});
+                Tensor<T> result = Tensor<T>(m_parent.shape(), m_parent.device(), uninitialized);
+                dispatch(m_parent.device(), UnaryOp::ReLU, result, m_parent);
+                return result;
             }
 
             void backward(const Tensor<T>& out_grad) override {
                 if (m_parent.requires_grad()) {
-                    Tensor<T> relu_grad = apply_out_of_place(out_grad, m_parent, m_parent.shape(), [](T a, T b){return b > 0 ? a : 0;});
+                    Tensor<T> relu_grad = Tensor<T>(m_parent.shape(), m_parent.device(), uninitialized);
+                    dispatch(m_parent.device(), BinaryOp::ReLUBackward, relu_grad, m_parent);
                     m_parent.accumulate_grad(relu_grad);
                 }
             }

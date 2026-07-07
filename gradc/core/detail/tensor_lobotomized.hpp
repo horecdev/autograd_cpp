@@ -2,6 +2,7 @@
 
 #include "../types.hpp"
 #include "../tensor.hpp"
+#include "../../backend/dispatcher.hpp"
 
 
 
@@ -9,7 +10,9 @@ namespace gradc {
     
     template <typename T>
     Tensor<T> lobotomized_contiguous_alloc(const Tensor<T>& source) {
-        return apply_unary_out_of_place(source, [](T a){return a;});
+        Tensor<T> result = Tensor<T>(source.m_shape, source.device(), uninitialized);
+        dispatch(source.device(), UnaryOp::Identity, result, source);
+        return result;
     }
 
     template <typename T>

@@ -16,3 +16,6 @@ m_left inside node is the only place in universe where it exists. Nobody else wi
 and d keeps the nullptr. ReshapeNode has a copy of c, also with a nullptr. 
 When realize happens, c storage is filled with data. ReshapeNode has none, d has none, but should. Everything blows up.
 If there is a shared_ptr, its inside c, ReshapeNode, and d. Change immediately gets reflected.
+10) Every apply function supposes memory is already allocated. It can be initialized for InPlace, or uninitialized for everytihng other (including Reduce)
+11) Frontend asserts every single m_parent, m_left, m_right etc. is on the same device as result and tensor that will get result
+12) Since frontend asserts that, accumulate_grad means result accumulates to m_parent, so grads are also on the right device.

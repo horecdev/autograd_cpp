@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../core/tensor.hpp"
-#include "../graph/nodes/unary_nodes.hpp"
+#include "../graph/nodes/activation_nodes.hpp"
 
 namespace gradc {
     template <typename T>

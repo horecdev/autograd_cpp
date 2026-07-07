@@ -18,6 +18,8 @@ namespace gradc {
                 m_left.realize();
                 m_right.realize();
 
+                Device target_device = m_left.device();
+
                 if (m_left.is_exclusive() && m_left.shape() == m_target_shape) { // inside addnode m_left storage is used solely for producing a result. 
                 // If nobody else uses the m_left EVER, then instead of using new memory, can just edit it and return.
                     apply_in_place(m_left, m_right, [](T& a, T b){a += b;});
@@ -28,6 +30,7 @@ namespace gradc {
                     return m_right;
                 }
 
+                Tensor<T> result = Tensor<T>(m_target_shape, )
                 return apply_out_of_place(m_left, m_right, m_target_shape, [](T a, T b) {return a + b;});
             }
 
