@@ -20,7 +20,7 @@ namespace gradc {
             Tensor<T> realize() override {
                 m_parent.realize();
                 Tensor<T> result = Tensor<T>(m_reduction_metadata.result_shape, m_parent.device(), uninitialized);
-                dispatch(m_parent.device(), ReduceOp::Sum, T(), m_reduction_metadata, result, m_parent);
+                dispatch(m_parent.device(), ReduceOp::Sum, m_reduction_metadata, result, m_parent);
                 return result;
             }
 
@@ -46,7 +46,7 @@ namespace gradc {
             Tensor<T> realize() override {
                 m_parent.realize();
                 Tensor<T> summed = Tensor<T>(m_reduction_metadata.result_shape, m_parent.device(), uninitialized);
-                dispatch(m_parent.device(), ReduceOp::Sum, T(), m_reduction_metadata, summed, m_parent);
+                dispatch(m_parent.device(), ReduceOp::Sum, m_reduction_metadata, summed, m_parent);
                 dispatch(m_parent.device(), BinaryOpInPlace::Div, summed, Tensor<T>(static_cast<T>(m_reduction_metadata.reduced_vol), m_parent.device()));
                 return summed;
             }

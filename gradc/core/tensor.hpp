@@ -15,6 +15,8 @@
 namespace gradc {
     struct TensorStateBase;
     template <typename T> struct TensorState;
+
+    class CPUBackend;
     
     template <typename T>
     class Tensor {
@@ -144,11 +146,7 @@ namespace gradc {
             Tensor relu() const;
             
             // MATH
-            template <typename T1, typename T2, typename Func> friend void apply_in_place(Tensor<T1>& left, const Tensor<T2>& right, Func op);
-            template <typename U, typename Func> friend void apply_out_of_place(const Tensor<T>& out, const Tensor<U>& left, const Tensor<U>& right, const std::vector<int64_t>& target_shape, Func op);
-            template <typename U, typename Func> friend void apply_reduction_operation(const Tensor<T>& out, const Tensor<U>& source, const ReductionMetadata& reduction_metadata, U init_value, Func op);
-            template <typename U, typename Func> friend void apply_unary_in_place(Tensor<T>& source, Func op);
-            template <typename U, typename Func> friend void apply_unary_out_of_place(const Tensor<T>& out, const Tensor<U>& source, Func op);
+            friend CPUBackend;
 
             template <typename U, typename W> friend auto operator+(Tensor<U> left, Tensor<W> right); // we befriend whole family of functions named operator+. 
             template <typename U, typename W> friend auto operator*(Tensor<U> left, Tensor<W> right); // It operates on type U and U can be virtually anything
