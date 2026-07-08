@@ -1,6 +1,13 @@
 #pragma once
 
 #include "../core/tensor.hpp"
+#include "../core/tensor_state.hpp"
+
+#include <cstdint>
+#include <initializer_list>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace gradc {
     template <typename T>

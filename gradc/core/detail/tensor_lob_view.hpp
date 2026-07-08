@@ -4,6 +4,7 @@
 #include "shape_inference.hpp"
 
 #include <cstdint>
+#include <iterator>
 #include <stdexcept>
 #include <utility>
 #include <vector>

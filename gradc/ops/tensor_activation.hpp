@@ -3,6 +3,8 @@
 #include "../core/tensor.hpp"
 #include "../graph/nodes/activation_nodes.hpp"
 
+#include <memory>
+
 namespace gradc {
     template <typename T>
     Tensor<T> Tensor<T>::relu() const {

@@ -1,7 +1,12 @@
 #pragma once
 
+#include "../core/detail/tensor_lob_view.hpp"
 #include "../core/tensor.hpp"
 #include "../graph/nodes/view_nodes.hpp"
+
+#include <cstdint>
+#include <memory>
+#include <vector>
 
 namespace gradc {
     template <typename T>

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../types.hpp"
-#include "../tensor.hpp"
 #include "../../backend/dispatcher.hpp"
+#include "../tensor.hpp"
+#include "../types.hpp"
 
 #include <cstdint>
 #include <utility>

@@ -1,9 +1,12 @@
 #pragma once
 
 #include "tensor.hpp"
+#include "types.hpp"
 
 #include <cstdint>
 #include <iostream>
+#include <iterator>
+#include <string>
 #include <vector>
 
 namespace gradc {

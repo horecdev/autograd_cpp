@@ -2,7 +2,13 @@
 
 #include "types.hpp"
 
+#include <algorithm>
+#include <cstdint>
+#include <cstring>
+#include <initializer_list>
+#include <malloc.h>
 #include <stdexcept>
+#include <utility>
 
 namespace gradc {
     template <typename T>

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../node.hpp"
-#include "../../core/tensor.hpp"
 #include "../../backend/dispatcher.hpp"
+#include "../../core/tensor.hpp"
+#include "../node.hpp"
 
 namespace gradc {
 

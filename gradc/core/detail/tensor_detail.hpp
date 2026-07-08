@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../tensor.hpp"
 #include "../../backend/dispatcher.hpp"
+#include "../tensor.hpp"
 #include "shape_inference.hpp"
 
 #include <cstdint>

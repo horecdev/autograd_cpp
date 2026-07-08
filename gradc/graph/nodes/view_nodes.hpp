@@ -1,8 +1,16 @@
 #pragma once
 
-#include "../node.hpp"
-#include "../../core/tensor.hpp"
+#include "../../core/detail/shape_inference.hpp"
+#include "../../core/detail/tensor_lob_view.hpp"
+#include "../../backend/op_types.hpp"
 #include "../../backend/dispatcher.hpp"
+#include "../../core/tensor.hpp"
+#include "../../core/types.hpp"
+#include "../node.hpp"
+
+#include <cstdint>
+#include <utility>
+#include <vector>
 
 namespace gradc {
 

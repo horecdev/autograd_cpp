@@ -1,8 +1,12 @@
 #pragma once
-#include "storage.hpp"
+
 #include "../graph/node.hpp"
+#include "storage.hpp"
 
 #include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
 // doesnt need tensor.hpp cuz tensor_state.hpp is only ever included at its bottom
 
 namespace gradc {

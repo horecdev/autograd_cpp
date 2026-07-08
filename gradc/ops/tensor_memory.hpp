@@ -1,7 +1,14 @@
 #pragma once
 
+#include "../core/detail/shape_inference.hpp"
 #include "../core/tensor.hpp"
 #include "../graph/nodes/memory_nodes.hpp"
+
+#include <cstdint>
+#include <memory>
+#include <stdexcept>
+#include <type_traits>
+#include <vector>
 
 namespace gradc {
 

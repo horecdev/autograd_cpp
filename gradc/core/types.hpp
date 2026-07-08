@@ -1,6 +1,9 @@
 #pragma once
 
+#include <cstdint>
 #include <optional>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace gradc {

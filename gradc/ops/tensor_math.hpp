@@ -1,7 +1,16 @@
 #pragma once
 
+#include "../core/detail/shape_inference.hpp"
+#include "../core/detail/tensor_detail.hpp"
 #include "../core/tensor.hpp"
 #include "../graph/nodes/math_nodes.hpp"
+
+#include <cstdint>
+#include <memory>
+#include <stdexcept>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 namespace gradc {
     template <typename T, typename U>

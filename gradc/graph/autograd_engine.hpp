@@ -1,9 +1,15 @@
 #pragma once
 
-#include "../core/tensor.hpp"
 #include "../backend/dispatcher.hpp"
+#include "../core/tensor.hpp"
+#include "../core/tensor_state.hpp"
+#include "node.hpp"
 
+#include <algorithm>
+#include <optional>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
 namespace gradc {
     // If Y1, Y2 depend on X:
