@@ -1,4 +1,5 @@
 #include "../../core/tensor.hpp"
+#include "../../core/detail/tensor_lob_view.hpp"
 
 namespace gradc::cpu {
     // RULE: EVERY OUT TENSOR IS MEMORY ALLOCATED. SUPPOSED TO NOT BE INITIALIZED EXCEPT IN-PLACE OPPS 
