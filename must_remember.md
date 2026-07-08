@@ -20,5 +20,3 @@ If there is a shared_ptr, its inside c, ReshapeNode, and d. Change immediately g
 11) Frontend asserts every single m_parent, m_left, m_right etc. is on the same device as tensor that will get result
 12) Since frontend asserts that, accumulate_grad means result accumulates to m_parent, so grads are also on the right device. 
 SHORTLY: Created lazily/view of Tensor<T> has the same device as member variables of its node.
-13) Output of reduction operation is contiguous because it was allocated contiguous. Then its treated like a contiguous tensor where out_strided_idx just increments it based
-on row major order, but sometimes pauses.

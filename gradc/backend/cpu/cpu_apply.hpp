@@ -10,11 +10,22 @@ namespace gradc {
         template <typename T, typename Func>
         static void apply_binary_out_of_place(Tensor<T>& out, const Tensor<T>& left, const Tensor<T>& right, Func op) {
             if (std::ssize(out.m_shape) == 0) { // op on 2 scalars
-                (out.m_state->m_storage->m_data)[0] = op((left.m_state->m_storage->m_data)[left.m_offset], (right.m_state->m_storage->m_data)[right.m_offset]);
+                (out.m_state->m_storage->m_data)[out.m_offset] = op((left.m_state->m_storage->m_data)[left.m_offset], (right.m_state->m_storage->m_data)[right.m_offset]);
+                return;
             }
 
-            if (left.m_shape == right.m_shape && left.is_contiguous() && right.is_contiguous()) {
+            if (out.m_shape == left.m_shape && left.m_shape == right.m_shape && out.is_contiguous() && left.is_contiguous() && right.is_contiguous()) {
                 // fast path
+                int64_t total_size = out.volume();
+
+                T* __restrict p_out = out._get_storage()->data() + out.m_offset;
+                const T* __restrict p_left = left._get_storage()->data() + left.m_offset;
+                const T* __restrict p_right = right._get_storage()->data() + right.m_offset;
+                
+                for (int64_t i = 0; i < total_size; ++i) {
+                    p_out[i] = op(p_left[i], p_right[i]);
+                }
+                return;
             }
 
             const std::vector<int64_t>* left_strides = &left.m_strides;
@@ -72,6 +83,15 @@ namespace gradc {
 
             if (left.m_shape == right.m_shape && left.is_contiguous() && right.is_contiguous()) {
                 // fast path
+                int64_t total_size = left.volume();
+
+                T* __restrict p_left = left._get_storage()->data() + left.m_offset;
+                const T* __restrict p_right = right._get_storage()->data() + right.m_offset;
+                
+                for (int64_t i = 0; i < total_size; ++i) {
+                    op(p_left[i], p_right[i]);
+                }
+                return;
             }
 
             const std::vector<int64_t>* right_strides; // promise not to modify data, (can reassign the pointer)
@@ -113,11 +133,21 @@ namespace gradc {
         template <typename OutT, typename InT, typename Func>
         static void apply_unary_out_of_place(Tensor<OutT>& out, const Tensor<InT>& source, Func op) {
             if (source.m_shape.empty()) {
-                (out.m_state->m_storage->m_data)[0] = op((source.m_state->m_storage->m_data)[source.m_offset]);
+                (out.m_state->m_storage->m_data)[out.m_offset] = op((source.m_state->m_storage->m_data)[source.m_offset]);
+                return;
             }
             
-            if (source.is_contiguous()) {
+            if (out.is_contiguous() && source.is_contiguous()) {
                 // fast path
+                int64_t total_size = out.volume();
+
+                OutT* __restrict p_out = out._get_storage()->data() + out.m_offset;
+                const InT* __restrict p_source = source._get_storage()->data() + source.m_offset;
+                
+                for (int64_t i = 0; i < total_size; ++i) {
+                    p_out[i] = op(p_source[i]);
+                }
+                return;
             }
 
             const int64_t n_dim = std::ssize(source.m_shape);
@@ -149,7 +179,15 @@ namespace gradc {
             }
 
             if (source.is_contiguous()) {
-                //fast path
+                // fast path
+                int64_t total_size = source.volume();
+
+                const T* __restrict p_source = source._get_storage()->data() + source.m_offset;
+                
+                for (int64_t i = 0; i < total_size; ++i) {
+                    op(p_source[i]);
+                }
+                return;
             }
 
             const int64_t n_dim = std::ssize(source.m_shape);

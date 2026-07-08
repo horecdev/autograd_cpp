@@ -23,9 +23,11 @@ DONE BIG REFACTOR (hide backend from frontend)
 DONE Update the out of, in, reduce etc. to write to uninitialized memory. think of the issue where memory is initialized and scalars.
 DONE Write 6 dispatchers (out of, in, reduce, unary in, unary out of, layout) - everything that copies/creates new data gets a dispatcher to cuda/cpu
 DONE Split into lob_alloc and lob_view files the lobotomized funcs so you can include views inside cpu_apply (they dont need dispatchers)
-- Make every file self-contained 
-- Compile this big ass codebase
-- SIMD contiguous fast paths (apply_in_place, apply_out_of_place, apply_unary)
+DONE Fix #includes
+DONE Compile this big ass codebase
+DONE SIMD contiguous fast paths (apply_in_place, apply_out_of_place, apply_unary)
 - CUDA BRIDGE / UTILS .to() etc.
 - Memory pools (same shape math ran thousands of times)
-- CUDA
+- CUDA KERNELS!
+- Add ton of bloated nodes so the engine is actually usable
+- Write STACK node
