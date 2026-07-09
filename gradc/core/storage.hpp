@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.hpp"
+#include "../backend/cpu/cpu_memory_pool.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -8,7 +9,6 @@
 #include <initializer_list>
 #include <malloc.h>
 #include <stdexcept>
-#include <utility>
 
 namespace gradc {
     template <typename T>
@@ -25,11 +25,10 @@ namespace gradc {
                     if (m_device == Device::CPU) {
                         int64_t aligned_bytes = ((bytes + 31) / 32) * 32; // must be 32 multiple
                         // by default _aligned_malloc returns void* (pointer to very first byte) so u cast it to T*
-                        m_data = static_cast<T*>(_aligned_malloc(aligned_bytes, 32));
+                        m_data = static_cast<T*>(CPUMemPool::get().allocate(aligned_bytes));
                         if (fill) {
                             std::fill(m_data, m_data + m_size, init_val); // m_data + m_size does pointer arithmetic (applies for sizeof)
                         }
-                        
                     }
                     
                     else if (m_device == Device::CUDA) {
@@ -45,9 +44,10 @@ namespace gradc {
 
             if (m_device == Device::CPU) {
                 int64_t bytes = m_size * sizeof(T);
-                int64_t aligned_bytes = ((bytes + 31) / 32) * 32;
-                m_data = static_cast<T*>(_aligned_malloc(aligned_bytes, 32));
-                std::memcpy(m_data, data.begin(), data.size() * sizeof(T));
+                int64_t aligned_bytes = ((bytes + 31) / 32) * 32; 
+                m_data = static_cast<T*>(CPUMemPool::get().allocate(aligned_bytes));
+                
+                std::memcpy(m_data, data.begin(), data.size() * sizeof(T)); 
             }
         }
 
@@ -64,16 +64,23 @@ namespace gradc {
         }
 
         ~Storage() {
-            _aligned_free(m_data); // accepts void* but any pointer can implicitly convert to void*
+            int64_t bytes = m_size * sizeof(T);
+            int64_t aligned_bytes = ((bytes + 31) / 32) * 32;
+            CPUMemPool::get().free(m_data, aligned_bytes); // accepts void* but any pointer can implicitly convert to void*
         }
 
         Storage(const Storage&) = delete; // since we manually free memory copying should not exist.
         Storage& operator=(const Storage&) = delete; // we dont even copy storage anywhere so its cool
         
-        Storage(Storage&& other) : m_data(std::move(other.m_data)), m_size(other.m_size), m_device(other.m_device) {}
+        Storage(Storage&& other) : m_size(other.m_size), m_device(other.m_device) {
+            m_data = other.m_data;
+            other.m_data = nullptr;
+        }
+
         Storage& operator=(Storage&& other) {
             if (this != &other) {
-                m_data = std::move(other.m_data);
+                m_data = other.m_data;
+                other.m_data = nullptr;
                 m_size = other.m_size;
                 m_device = other.m_device;
             }

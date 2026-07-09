@@ -26,8 +26,11 @@ DONE Split into lob_alloc and lob_view files the lobotomized funcs so you can in
 DONE Fix #includes
 DONE Compile this big ass codebase
 DONE SIMD contiguous fast paths (apply_in_place, apply_out_of_place, apply_unary)
+- Memory pools for CPU (same shape math ran thousands of times)
+- Write memory allocations for CUDA
+- Extend memory pools to apply for CUDA (maybe some inheritance)
 - CUDA BRIDGE / UTILS .to() etc.
-- Memory pools (same shape math ran thousands of times)
 - CUDA KERNELS!
+- Link up BLAS and cuBLAS
 - Add ton of bloated nodes so the engine is actually usable
 - Write STACK node
