@@ -1,13 +1,17 @@
 cmake_minimum_required(VERSION 3.25)
-project(CalculationGraphEngine CXX)
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -allow-unsupported-compiler")
+project(CalculationGraphEngine CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(CMAKE_CUDA_ARCHITECTURES 86)
+
 add_executable(tensor 
     main.cpp
     gradc/gradc.hpp
+    gradc/backend/cuda/cuda_test.cu
 )
 
 # Fix: Tell the compiler to look in the root directory, so "gradc/..." paths work

@@ -20,3 +20,7 @@ If there is a shared_ptr, its inside c, ReshapeNode, and d. Change immediately g
 11) Frontend asserts every single m_parent, m_left, m_right etc. is on the same device as tensor that will get result
 12) Since frontend asserts that, accumulate_grad means result accumulates to m_parent, so grads are also on the right device. 
 SHORTLY: Created lazily/view of Tensor<T> has the same device as member variables of its node.
+13) If strides are [5, 10, 3, 2] and strides [60, 6, 1, 2] then you can fuse it into [50, 3, 2] with strides [6, 1, 2]. Because 60 = 6 * 10 (strides[i] = strides[i - 1] * shape[i - 1])
+Why does it work? Because think about what dim 1 does. Goes 10 times, increments strided idx by 6. Total 60. When it finished its loop, dim 0 increments by 60. Then starts increasing by 6 again. 
+If you have two tensors of the same shape, same strides but partially contiguous, you can instead of running strided loop just squash two dims into one, update strides.  
+Less odometer strain.
