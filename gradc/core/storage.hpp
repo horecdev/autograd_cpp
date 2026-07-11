@@ -17,12 +17,12 @@ namespace gradc {
         int64_t m_size = 0;
         Device m_device;
 
-        Storage() : m_data(nullptr), m_size(0), m_device(Device::CPU) {}
+        Storage() : m_data(nullptr), m_size(0), m_device(Device(DeviceType::CPU)) {}
 
-        Storage(int64_t size, T init_val = T(), Device device = Device::CPU, bool allocate = true, bool fill = true) : m_size(size), m_device(device) {
+        Storage(int64_t size, T init_val = T(), Device device = Device(DeviceType::CPU), bool allocate = true, bool fill = true) : m_size(size), m_device(device) {
             int64_t bytes = size * sizeof(T);
                 if (allocate) {
-                    if (m_device == Device::CPU) {
+                    if (m_device.is_cpu()) {
                         int64_t aligned_bytes = ((bytes + 31) / 32) * 32; // must be 32 multiple
                         // by default _aligned_malloc returns void* (pointer to very first byte) so u cast it to T*
                         m_data = static_cast<T*>(CPUMemPool::get().allocate(aligned_bytes));
@@ -31,24 +31,26 @@ namespace gradc {
                         }
                     }
                     
-                    else if (m_device == Device::CUDA) {
+                    else if (m_device.is_cuda()) {
                         // some CUDA stuff later
                     }
                 }
         }
 
-        Storage(std::initializer_list<T> data, Device device = Device::CPU) : m_size(std::ssize(data)), m_device(device) {
+        Storage(std::initializer_list<T> data, Device device = Device(DeviceType::CPU)) : m_size(std::ssize(data)), m_device(device) {
             if (m_size < 1) {
                 throw std::runtime_error("Storage constructed with empty initializer_list. Use a different constructor.");
             }
 
-            if (m_device == Device::CPU) {
+            if (m_device.is_cpu()) {
                 int64_t bytes = m_size * sizeof(T);
                 int64_t aligned_bytes = ((bytes + 31) / 32) * 32; 
                 m_data = static_cast<T*>(CPUMemPool::get().allocate(aligned_bytes));
                 
                 std::memcpy(m_data, data.begin(), data.size() * sizeof(T)); 
             }
+
+            else if (m_device.is_cuda()) {}
         }
 
         T* data() const {

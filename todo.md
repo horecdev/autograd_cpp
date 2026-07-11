@@ -27,13 +27,15 @@ DONE Fix #includes
 DONE Compile this big ass codebase
 DONE SIMD contiguous fast paths (apply_in_place, apply_out_of_place, apply_unary)
 DONE Memory pools for CPU (same shape math ran thousands of times)
-- Download CUDA toolkit and set up the compiler + cmake
-- Write memory allocations for CUDA (CUDAMemPool)
-- Extend memory pools to apply for CUDA (maybe some inheritance)
+DONE Download CUDA toolkit and set up the compiler + cmake
+DONE Write memory allocations for CUDA (CUDAMemPool)
+- Extend Device to hold index and change enum CUDA/CPU to be DeviceType and apply for it (compile)
+- Update CUDAMemPool to apply for multiple devices (mallocs too)
+- Integrate CUDAMemPool into Storage class for allocations
 - CUDA BRIDGE / UTILS .to() etc.
 - CUDA KERNELS!
 - DIM COALESCING
 - Write alternative ctors for ones, zeros, normal, uniform etc.
 - Link up BLAS and cuBLAS
-- Add ton of bloated nodes so the engine is actually usable
 - Write STACK node
+- Add ton of bloated nodes so the engine is actually usable

@@ -38,7 +38,7 @@ namespace gradc {
 
     template <typename T>
     inline void dispatch(Device device, UnaryOp op, Tensor<T>& out, const Tensor<T>& in) {
-        if (device == Device::CPU) {
+        if (device.is_cpu()) {
             switch (op) {
                 case UnaryOp::Identity:
                     CPUBackend::apply_unary_out_of_place(out, in, [](T a){return a;});
@@ -61,14 +61,14 @@ namespace gradc {
             }
         }
 
-        else if (device == Device::CUDA) {
+        else if (device.is_cuda()) {
             // same but for CUDA
         }
     }
 
     template <typename T>
     inline void dispatch(Device device, UnaryOpInPlace op, Tensor<T>& in) {
-        if (device == Device::CPU) {
+        if (device.is_cpu()) {
             switch (op) {
                 case UnaryOpInPlace::Exp:
                     CPUBackend::apply_unary_in_place(in, [](T& a){a = std::exp(a);});
@@ -87,14 +87,14 @@ namespace gradc {
             }
         }
 
-        else if (device == Device::CUDA) {
+        else if (device.is_cuda()) {
             // same but for CUDA
         }
     }
 
     template <typename T>
     inline void dispatch(Device device, BinaryOp op, Tensor<T>& out, const Tensor<T>& left, const Tensor<T>& right) {
-        if (device == Device::CPU) {
+        if (device.is_cpu()) {
             switch (op) {
                 case BinaryOp::Add:
                     CPUBackend::apply_binary_out_of_place(out, left, right, [](T a, T b){return a + b;});
@@ -121,14 +121,14 @@ namespace gradc {
             }
         }
 
-        else if (device == Device::CUDA) {
+        else if (device.is_cuda()) {
             // same but for CUDA
         }
     }
 
     template <typename T>
     inline void dispatch(Device device, BinaryOpInPlace op, Tensor<T>& left, const Tensor<T>& right) {
-        if (device == Device::CPU) {
+        if (device.is_cpu()) {
             switch (op) {
                 case BinaryOpInPlace::Add:
                     CPUBackend::apply_binary_in_place(left, right, [](T& a, T b){a += b;});
@@ -151,14 +151,14 @@ namespace gradc {
             }
         }
 
-        else if (device == Device::CUDA) {
+        else if (device.is_cuda()) {
             // same but for CUDA
         }
     }
 
     template <typename T>
     inline void dispatch(Device device, ReduceOp op, ReductionMetadata& reduction_metadata, Tensor<T>& out, const Tensor<T>& in) {
-        if (device == Device::CPU) {
+        if (device.is_cpu()) {
             switch (op) {
                 case ReduceOp::Sum:
                     CPUBackend::apply_reduction_operation(out, in, reduction_metadata, T(), [](T a, T b){return a + b;});
@@ -174,16 +174,17 @@ namespace gradc {
             }
         }
 
-        else if (device == Device::CUDA) {
+        else if (device.is_cuda()) {
             // same but for CUDA
         }
     }
 
     template <typename OutT, typename InT>
     inline void dispatch_cast(Device device, Tensor<OutT>& out, const Tensor<InT>& in) {
-        if (device == Device::CPU) {
+        if (device.is_cpu()) {
             CPUBackend::apply_unary_out_of_place(out, in, [](InT a){return static_cast<OutT>(a);});
         }
+        else if (device.is_cuda()) {}
     }
 
 }

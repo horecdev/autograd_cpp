@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 namespace gradc {
     // CORE DTYPES
@@ -29,7 +30,39 @@ namespace gradc {
 
     // DEVICES
 
-    enum class Device {CPU, CUDA};
+    enum class DeviceType {CPU, CUDA};
+
+    struct Device {
+        DeviceType type;
+        int32_t index;
+
+        constexpr Device(DeviceType type = DeviceType::CPU, int32_t index = -1) : type(type), index(index) {}
+
+        constexpr bool operator==(const Device& other) const {
+            return (type == other.type && index == other.index);
+        }
+
+        constexpr bool operator!=(const Device& other) const {
+            return !(*this == other);
+        }
+
+        friend std::ostream& operator<<(std::ostream& os, const Device& d) {
+            if (d.type == DeviceType::CPU) {
+                os << "CPU";
+            }
+            else if (d.type == DeviceType::CUDA) {
+                os << "CUDA:" << d.index;
+            }
+        }
+
+        constexpr bool is_cpu() {
+            return type == DeviceType::CPU;
+        }
+
+        constexpr bool is_cuda() {
+            return type == DeviceType::CUDA;
+        }
+    };
 
     // INDEXING
 

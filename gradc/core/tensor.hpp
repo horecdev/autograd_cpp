@@ -55,13 +55,13 @@ namespace gradc {
 
             // LIFECYCLE 
             Tensor();
-            explicit Tensor(T value, Device device = Device::CPU);
-            explicit Tensor(std::vector<int64_t> shape, T init_val = T(), Device device = Device::CPU);
-            explicit Tensor(std::vector<int64_t> shape, Device device = Device::CPU, UninitializedTag = uninitialized);
+            explicit Tensor(T value, Device device = Device(DeviceType::CPU));
+            explicit Tensor(std::vector<int64_t> shape, T init_val = T(), Device device = Device(DeviceType::CPU));
+            explicit Tensor(std::vector<int64_t> shape, Device device = Device(DeviceType::CPU), UninitializedTag = uninitialized);
 
-            Tensor(std::initializer_list<int64_t> shape, T init_val = T(), Device device = Device::CPU);
+            Tensor(std::initializer_list<int64_t> shape, T init_val = T(), Device device = Device(DeviceType::CPU));
             Tensor(std::vector<int64_t> shape, std::shared_ptr<Storage<T>> storage);
-            Tensor(std::vector<int64_t> shape, bool requires_grad, LazyTag, Device device = Device::CPU);
+            Tensor(std::vector<int64_t> shape, bool requires_grad, LazyTag, Device device = Device(DeviceType::CPU));
             Tensor(std::vector<int64_t> shape, std::vector<int64_t> strides, int64_t offset, std::shared_ptr<Storage<T>> storage, bool requires_grad);
             Tensor(std::vector<int64_t> shape, std::vector<int64_t> strides, int64_t offset, std::shared_ptr<TensorState<T>> state, bool requires_grad);
             ~Tensor();
