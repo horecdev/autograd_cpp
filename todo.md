@@ -27,7 +27,7 @@ DONE Fix #includes
 DONE Compile this big ass codebase
 DONE SIMD contiguous fast paths (apply_in_place, apply_out_of_place, apply_unary)
 DONE Memory pools for CPU (same shape math ran thousands of times)
-- Download CUDA toolkit and set up the compiler
+- Download CUDA toolkit and set up the compiler + cmake
 - Write memory allocations for CUDA (CUDAMemPool)
 - Extend memory pools to apply for CUDA (maybe some inheritance)
 - CUDA BRIDGE / UTILS .to() etc.

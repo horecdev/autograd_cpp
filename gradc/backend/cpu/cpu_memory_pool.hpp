@@ -45,7 +45,9 @@ class CPUMemPool {
         }
 
         void free(void* ptr, int64_t aligned_bytes) {
-            m_free_blocks[aligned_bytes].push_back(ptr);
+            if (ptr != nullptr) {
+                m_free_blocks[aligned_bytes].push_back(ptr);
+            }
         }
 
         void clear() {

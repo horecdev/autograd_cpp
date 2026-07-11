@@ -1,2 +1,12 @@
 CompileFlags:
-  Add: [-std=c++23]
+  Add: 
+    - "-std=c++23"
+    - "-xcuda"
+    - "--cuda-path=C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.2"
+    - "-IC:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.2/include"
+  Remove: 
+    - "-forward-unknown-to-host-compiler"
+    - "-Xcompiler*"
+    - "--generate-code*"
+    - "-ccbin*"
+    - "-O2"
