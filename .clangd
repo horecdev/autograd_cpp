@@ -10,3 +10,5 @@ CompileFlags:
     - "--generate-code*"
     - "-ccbin*"
     - "-O2"
+    - "-fsanitize=address"
+    - "-MDd"

@@ -32,7 +32,7 @@ namespace gradc {
                     }
                     
                     else if (m_device.is_cuda()) {
-                        // some CUDA stuff later
+                        // some CUDA stuff later (apply for index)
                     }
                 }
         }

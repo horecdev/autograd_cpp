@@ -29,7 +29,7 @@ DONE SIMD contiguous fast paths (apply_in_place, apply_out_of_place, apply_unary
 DONE Memory pools for CPU (same shape math ran thousands of times)
 DONE Download CUDA toolkit and set up the compiler + cmake
 DONE Write memory allocations for CUDA (CUDAMemPool)
-- Extend Device to hold index and change enum CUDA/CPU to be DeviceType and apply for it (compile)
+DONE Extend Device to hold index and change enum CUDA/CPU to be DeviceType and apply for it (compile)
 - Update CUDAMemPool to apply for multiple devices (mallocs too)
 - Integrate CUDAMemPool into Storage class for allocations
 - CUDA BRIDGE / UTILS .to() etc.
