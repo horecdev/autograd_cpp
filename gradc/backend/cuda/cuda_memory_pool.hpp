@@ -2,15 +2,21 @@
 
 #include <cuda_device_runtime_api.h>
 #include <cuda_runtime.h>
+#include "../../core/types.hpp"
 #include <cstdint>
+#include <cuda_runtime_api.h>
 #include <stdexcept>
 #include <vector>
 #include <unordered_map>
 
-class CUDAMemPool {
+namespace gradc {
+    class CUDAMemPool {
     private:
-        std::unordered_map<int64_t, std::vector<void*>> m_free_blocks;
-        CUDAMemPool() = default; 
+        int m_device_count = 0;
+        std::vector<std::unordered_map<int64_t, std::vector<void*>>> m_free_blocks;
+        CUDAMemPool() {
+            cudaGetDeviceCount(&m_device_count);
+        }
     public:
         CUDAMemPool(const CUDAMemPool&) = delete;
         CUDAMemPool& operator=(const CUDAMemPool) = delete;
@@ -20,8 +26,13 @@ class CUDAMemPool {
             return inst;
         }
 
-        void* allocate(int64_t bytes) {
-            std::vector<void*>& blocks = m_free_blocks[bytes];
+        void* allocate(int64_t bytes, Device device) {
+            if (device.index >= m_device_count) {
+                std::string error_msg = std::format("Invalid GPU index (>=): {}. Available GPUs: {}", device.index, m_device_count);
+                throw std::runtime_error(error_msg);
+            }
+            cudaSetDevice(device.index);
+            std::vector<void*>& blocks = m_free_blocks[device.index][bytes];
             if (!blocks.empty()) {
                 void* ptr = blocks.back();
                 blocks.pop_back();
@@ -32,7 +43,7 @@ class CUDAMemPool {
                 cudaError_t err = cudaMalloc(&ptr, bytes);
 
                 if (err != cudaSuccess) {
-                    clear();
+                    clear(device);
                     void* ptr = nullptr;
                     cudaError_t err = cudaMalloc(&ptr, bytes);
                     if (err != cudaSuccess) {
@@ -42,18 +53,30 @@ class CUDAMemPool {
             }
         }
 
-        void free(int64_t bytes, void* ptr) {
+        void free(int64_t bytes, void* ptr, Device device) {
+            if (device.index >= m_device_count) {
+                std::string error_msg = std::format("Invalid GPU index (>=): {}. Available GPUs: {}", device.index, m_device_count);
+                throw std::runtime_error(error_msg);
+            }
+            cudaSetDevice(device.index);
             if (ptr != nullptr) {
-                m_free_blocks[bytes].push_back(ptr);
+                m_free_blocks[device.index][bytes].push_back(ptr);
             }
         }
 
-        void clear() {
-            for (auto& [size, block] : m_free_blocks) {
-                for (void* ptr : block) {
+        void clear(Device device) {
+            if (device.index >= m_device_count) {
+                std::string error_msg = std::format("Invalid GPU index (>=): {}. Available GPUs: {}", device.index, m_device_count);
+                throw std::runtime_error(error_msg);
+            }
+            cudaSetDevice(device.index);
+            auto& device_blocks = m_free_blocks[device.index];
+            for (auto& [size, available_blocks] : device_blocks) {
+                for (void* ptr : available_blocks) {
                     cudaFree(&ptr);
                 }
             }
-            m_free_blocks.clear();
+            m_free_blocks[device.index].clear();
         }
-};
+    };
+}
