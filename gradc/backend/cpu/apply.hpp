@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../../core/tensor.hpp"
 #include "../../core/detail/tensor_lob_view.hpp"
 

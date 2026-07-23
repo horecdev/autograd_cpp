@@ -1,7 +1,7 @@
 #pragma once
 
 #include "op_types.hpp"
-#include "cpu/cpu_apply.hpp"
+#include "cpu/apply.hpp"
 #include "../core/tensor.hpp"
 #include "../core/types.hpp"
 

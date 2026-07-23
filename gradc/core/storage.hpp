@@ -1,8 +1,8 @@
 #pragma once
 
 #include "types.hpp"
-#include "../backend/cpu/cpu_memory_pool.hpp"
-#include "../backend/cuda/cuda_memory_pool.hpp"
+#include "../backend/cpu/memory_pool.hpp"
+#include "../backend/cuda/memory_pool.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -36,9 +36,9 @@ namespace gradc {
                     else if (m_device.is_cuda()) {
                         m_data = static_cast<T*>(CUDAMemPool::get().allocate(bytes, device));
                         if (fill) {
-                            
+
                         }
-                        // some CUDA stuff later (apply for index)
+                        // some CUDA stuff later (apply for multiple devices)
                     }
                 }
         }

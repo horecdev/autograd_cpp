@@ -23,7 +23,7 @@ namespace gradc {
             void backward(const Tensor<T>& out_grad) override {
                 if (m_parent.requires_grad()) {
                     Tensor<T> relu_grad = Tensor<T>(m_parent.shape(), m_parent.device(), uninitialized);
-                    dispatch(m_parent.device(), BinaryOp::ReLUBackward, relu_grad, m_parent);
+                    dispatch(m_parent.device(), BinaryOp::ReLUBackward, relu_grad, out_grad, m_parent);
                     m_parent.accumulate_grad(relu_grad);
                 }
             }
