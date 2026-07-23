@@ -57,7 +57,25 @@ namespace gradc {
         return std::make_pair(std::move(p_left), std::move(p_right));
     }
 
-        
+    std::pair<Device, cudaMemcpyKind> infer_cuda_memcpy_device_kind(Device src, Device dst) {
+        if (src.is_cpu() && dst.is_cuda()) {
+            return std::make_pair(dst, cudaMemcpyHostToDevice);
+        }
+        else if (src.is_cuda() && dst.is_cpu()) {
+            return std::make_pair(src, cudaMemcpyDeviceToHost);
+        }
+        else if (src.is_cuda() && dst.is_cuda()) {
+            return std::make_pair(dst, cudaMemcpyDeviceToDevice);
+        }
+    }
 
-    
+    void throw_cuda_memcpy_error(cudaMemcpyKind kind) {
+        switch (kind) {
+            case cudaMemcpyHostToDevice: {throw std::runtime_error("Copying data from Host to Device failed.");}
+            case cudaMemcpyDeviceToHost: {throw std::runtime_error("Copying data from Device to Host failed.");}
+            case cudaMemcpyDeviceToDevice: {throw std::runtime_error("Copying data from Device to Device failed.");}
+            case cudaMemcpyHostToHost: {throw std::runtime_error("Copying data from Host to Host failed.");}
+            case cudaMemcpyDefault: {throw std::runtime_error("Default cudamemcpy failed.");}
+        }
+    }
 }

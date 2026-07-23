@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <cuda_runtime_api.h>
 #include <initializer_list>
 #include <malloc.h>
 #include <stdexcept>
@@ -35,7 +36,7 @@ namespace gradc {
                     else if (m_device.is_cuda()) {
                         m_data = static_cast<T*>(CUDAMemPool::get().allocate(bytes, device));
                         if (fill) {
-
+                            
                         }
                         // some CUDA stuff later (apply for index)
                     }
@@ -55,7 +56,17 @@ namespace gradc {
                 std::memcpy(m_data, data.begin(), data.size() * sizeof(T)); 
             }
 
-            else if (m_device.is_cuda()) {}
+            else if (device.is_cuda()) {
+
+                int64_t bytes = m_size * sizeof(T);
+                m_data = static_cast<T*>(CUDAMemPool::get().allocate(bytes, device));
+
+                cudaSetDevice(device.index);
+                cudaError_t err = cudaMemcpy(m_data, data.begin(), bytes, cudaMemcpyHostToDevice);
+                if (err != cudaSuccess) {
+                    throw std::runtime_error("Failed initializing a storage with an initializer list.");
+                }
+            }
         }
 
         T* data() const {

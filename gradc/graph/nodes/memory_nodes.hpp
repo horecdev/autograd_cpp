@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../core/detail/tensor_detail.hpp"
 #include "../../backend/dispatcher.hpp"
 #include "../../core/detail/tensor_lob_alloc.hpp"
 #include "../../core/detail/tensor_lob_view.hpp"
@@ -8,6 +9,7 @@
 
 #include <cstdint>
 #include <cuda_runtime_api.h>
+#include <driver_types.h>
 #include <utility>
 #include <vector>
 
@@ -150,14 +152,38 @@ namespace gradc {
             ToNode(Tensor<T> parent, Device target_device) : m_parent(parent), m_target_device(target_device) {}
 
             Tensor<T> realize() override {
-                Tensor<T> result = m_parent
-                if (m_parent.device().is_cpu() && m_target_device.is_cuda()) {
-                    cudaSetDevice(m_target_device.index);
-                    cudaError_t cudaMemcpy() // copy only the right part (apply for offset)
+                Tensor<T> result = Tensor<T>(m_parent.shape(), m_target_device, uninitialized);
+                int64_t bytes_to_copy = m_parent.volume() * sizeof(T);
+                const T* src_ptr = m_parent._get_storage()->m_data + m_parent.offset();
+                T* dst_ptr = result._get_storage()->m_data; // offset for dst is 0 since its freshly made contiguous
+
+                auto& [set_device, kind] = infer_cuda_memcpy_device_kind(m_parent.device(), m_target_device);
+                cudaSetDevice(set_device.index);
+                cudaError_t err = cudaMemcpy(dst_ptr, src_ptr, bytes_to_copy, kind);
+                if (err != cudaSuccess) {
+                    throw_cuda_memcpy_error(kind);
                 }
+
+                return result;
             }
 
-            void backward(Tensor<T>& out_grad) override {}
+            void backward(Tensor<T>& out_grad) override {
+                if (m_parent.requires_grad()) {
+                    Tensor<T> to_grad = Tensor<T>(out_grad.shape(), m_parent.device(), uninitialized);
+                    int64_t bytes_to_copy = out_grad.volume() * sizeof(T);
+                    const T* src_ptr = out_grad._get_storage()->m_data; // always contiguous (no offset needed)
+                    T* dst_ptr = to_grad._get_storage()->m_data;
+
+                    auto& [set_device, kind] = infer_cuda_memcpy_device_kind(m_target_device, m_parent.device());
+                    cudaSetDevice(set_device.index);
+                    cudaError_t err = cudaMemcpy(dst_ptr, src_ptr, bytes_to_copy, kind);
+                    if (err != cudaSuccess) {
+                        throw_cuda_memcpy_error(kind);
+                    }
+
+                    m_parent.accumulate_grad(to_grad);
+                }
+            }
 
             std::vector<TensorStateBase*> get_input_states() override {
                 return {m_parent._get_state_base()};
