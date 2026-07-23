@@ -7,6 +7,7 @@
 #include "../node.hpp"
 
 #include <cstdint>
+#include <cuda_runtime_api.h>
 #include <utility>
 #include <vector>
 
@@ -137,6 +138,29 @@ namespace gradc {
                     dependencies.push_back(parent._get_state_base());
                 }
                 return dependencies;
+            }
+    };
+
+    template <typename T>
+    class ToNode : public Node<T> {
+        private:
+            Tensor<T> m_parent; // forced to be contiguous
+            Device m_target_device;
+        public:
+            ToNode(Tensor<T> parent, Device target_device) : m_parent(parent), m_target_device(target_device) {}
+
+            Tensor<T> realize() override {
+                Tensor<T> result = m_parent
+                if (m_parent.device().is_cpu() && m_target_device.is_cuda()) {
+                    cudaSetDevice(m_target_device.index);
+                    cudaError_t cudaMemcpy() // copy only the right part (apply for offset)
+                }
+            }
+
+            void backward(Tensor<T>& out_grad) override {}
+
+            std::vector<TensorStateBase*> get_input_states() override {
+                return {m_parent._get_state_base()};
             }
     };
 }

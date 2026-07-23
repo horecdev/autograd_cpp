@@ -49,11 +49,17 @@ namespace gradc {
                     if (err != cudaSuccess) {
                         throw std::runtime_error("CUDA Error: " + std::string(cudaGetErrorString(err)));
                     }
+                    else {
+                        return ptr;
+                    }
+                }
+                else {
+                    return ptr;
                 }
             }
         }
 
-        void free(int64_t bytes, void* ptr, Device device) {
+        void free(void* ptr, int64_t bytes, Device device) {
             if (device.index >= m_device_count) {
                 std::string error_msg = std::format("Invalid GPU index (>=): {}. Available GPUs: {}", device.index, m_device_count);
                 throw std::runtime_error(error_msg);

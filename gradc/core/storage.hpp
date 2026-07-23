@@ -2,6 +2,7 @@
 
 #include "types.hpp"
 #include "../backend/cpu/cpu_memory_pool.hpp"
+#include "../backend/cuda/cuda_memory_pool.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -32,6 +33,10 @@ namespace gradc {
                     }
                     
                     else if (m_device.is_cuda()) {
+                        m_data = static_cast<T*>(CUDAMemPool::get().allocate(bytes, device));
+                        if (fill) {
+
+                        }
                         // some CUDA stuff later (apply for index)
                     }
                 }
@@ -67,8 +72,13 @@ namespace gradc {
 
         ~Storage() {
             int64_t bytes = m_size * sizeof(T);
-            int64_t aligned_bytes = ((bytes + 31) / 32) * 32;
-            CPUMemPool::get().free(m_data, aligned_bytes); // accepts void* but any pointer can implicitly convert to void*
+            if (m_device.is_cpu()) {
+                int64_t aligned_bytes = ((bytes + 31) / 32) * 32;
+                CPUMemPool::get().free(m_data, aligned_bytes); // accepts void* but any pointer can implicitly convert to void*
+            }
+            else if (m_device.is_cuda()) {
+                CUDAMemPool::get().free(m_data, bytes, m_device);
+            }
         }
 
         Storage(const Storage&) = delete; // since we manually free memory copying should not exist.

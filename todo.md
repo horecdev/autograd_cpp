@@ -30,12 +30,15 @@ DONE Memory pools for CPU (same shape math ran thousands of times)
 DONE Download CUDA toolkit and set up the compiler + cmake
 DONE Write memory allocations for CUDA (CUDAMemPool)
 DONE Extend Device to hold index and change enum CUDA/CPU to be DeviceType and apply for it (compile)
-- Update CUDAMemPool to apply for multiple devices (mallocs too)
+DONE Update CUDAMemPool to apply for multiple devices (mallocs too)
 DONE Rename the repo on github to gradcraft
-- Integrate CUDAMemPool into Storage class for allocations
-- CUDA BRIDGE / UTILS .to() etc.
+- CUDA BRIDGE - ToNode and .to() without math on accumulate yet. Just call the dispatcher. CONTIGUITY FORCED. CHECK IF CONTIG. COPY ONLY CONTIG PART (APPLY FOR OFFSET)
+- Write cuda kernels for filling with values (same or from a list)
+- Write a cuda kernel for accumulation of grad (with broadcasting or just contiguous 1D loop)
+- Integrate CUDAMemPool into Storage class for allocations (write first kernel for filling memory from initializer list and T() init value)
 - CUDA KERNELS!
-- DIM COALESCING
+- DIM COALESCING ALGO HELPER
+- INTEGRATE DIM COALESCING
 - Write alternative ctors for ones, zeros, normal, uniform etc.
 - Link up BLAS and cuBLAS
 - Write STACK node

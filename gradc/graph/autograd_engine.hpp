@@ -45,7 +45,7 @@ namespace gradc {
     
     template <typename T>
     void Tensor<T>::accumulate_grad(const Tensor<T>& incoming_grad) {
-        Device target_device = infer_assert_device(*this, incoming_grad); // guard if user moved stuff around with .to() between .realize() and .backward()
+        Device target_device = infer_assert_device(*this, incoming_grad); // guard if a shitshow happened (but probably redundant)
 
         if (!m_requires_grad) {return;}
 

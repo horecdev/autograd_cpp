@@ -174,6 +174,9 @@ namespace gradc {
             template <typename U> friend Tensor<U> lazy_concat(std::vector<Tensor<U>>& tensor_list, int64_t concat_dim);
 
             template <typename TargetT> Tensor<TargetT> cast() const;
+
+            Tensor to(Device device);
+
     };      
 }
 
