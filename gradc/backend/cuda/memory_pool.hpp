@@ -15,6 +15,7 @@ namespace gradc {
         std::vector<std::unordered_map<int64_t, std::vector<void*>>> m_free_blocks;
         CUDAMemPool() {
             cudaGetDeviceCount(&m_device_count);
+            m_free_blocks.reserve(m_device_count);
         }
     public:
         CUDAMemPool(const CUDAMemPool&) = delete;
@@ -43,8 +44,8 @@ namespace gradc {
 
                 if (err != cudaSuccess) {
                     clear(device);
-                    void* ptr = nullptr;
-                    cudaError_t err = cudaMalloc(&ptr, bytes);
+                    ptr = nullptr;
+                    err = cudaMalloc(&ptr, bytes);
                     if (err != cudaSuccess) {
                         throw std::runtime_error("CUDA Error: " + std::string(cudaGetErrorString(err)));
                     }
@@ -78,7 +79,7 @@ namespace gradc {
             auto& device_blocks = m_free_blocks[device.index];
             for (auto& [size, available_blocks] : device_blocks) {
                 for (void* ptr : available_blocks) {
-                    cudaFree(&ptr);
+                    cudaFree(ptr);
                 }
             }
             m_free_blocks[device.index].clear();

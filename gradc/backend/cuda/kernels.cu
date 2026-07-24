@@ -18,4 +18,9 @@ namespace gradc {
 
         fill_kernel<<<blocks, threads>>>(ptr, val, size);
     }
+
+    template void CUDABackend::fill<float>(float* ptr, float val, int64_t size, Device device);
+    template void CUDABackend::fill<double>(double* ptr, double val, int64_t size, Device device);
+    template void CUDABackend::fill<int32_t>(int32_t* ptr, int32_t val, int64_t size, Device device);
+    template void CUDABackend::fill<int64_t>(int64_t* ptr, int64_t val, int64_t size, Device device);
 }

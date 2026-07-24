@@ -30,7 +30,7 @@ target_include_directories(tensor PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(MSVC)
     # Generator expressions prevent passing /fsanitize=address to nvcc
-    target_compile_options(tensor PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/fsanitize=address /Zi /W4>)
+    target_compile_options(tensor PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/Zi /W4>)
     target_link_options(tensor PRIVATE /INCREMENTAL:NO)
 else()
     target_compile_options(tensor PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fsanitize=address -g -fno-omit-frame-pointer>)

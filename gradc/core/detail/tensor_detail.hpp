@@ -5,6 +5,7 @@
 #include "shape_inference.hpp"
 
 #include <cstdint>
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -57,7 +58,7 @@ namespace gradc {
         return std::make_pair(std::move(p_left), std::move(p_right));
     }
 
-    std::pair<Device, cudaMemcpyKind> infer_cuda_memcpy_device_kind(Device src, Device dst) {
+    inline std::pair<Device, cudaMemcpyKind> infer_cuda_memcpy_device_kind(Device src, Device dst) {
         if (src.is_cpu() && dst.is_cuda()) {
             return std::make_pair(dst, cudaMemcpyHostToDevice);
         }
@@ -67,9 +68,12 @@ namespace gradc {
         else if (src.is_cuda() && dst.is_cuda()) {
             return std::make_pair(dst, cudaMemcpyDeviceToDevice);
         }
+        else {
+            throw std::runtime_error("Unknown transfer direction over the PCIe bus");
+        }
     }
 
-    void throw_cuda_memcpy_error(cudaMemcpyKind kind) {
+    inline void throw_cuda_memcpy_error(cudaMemcpyKind kind) {
         switch (kind) {
             case cudaMemcpyHostToDevice: {throw std::runtime_error("Copying data from Host to Device failed.");}
             case cudaMemcpyDeviceToHost: {throw std::runtime_error("Copying data from Device to Host failed.");}
@@ -77,5 +81,23 @@ namespace gradc {
             case cudaMemcpyHostToHost: {throw std::runtime_error("Copying data from Host to Host failed.");}
             case cudaMemcpyDefault: {throw std::runtime_error("Default cudamemcpy failed.");}
         }
+    }
+
+    template <typename T>
+    inline FusedView fuse_dimensions(std::vector<int64_t> shared_shape, std::vector<std::vector<int64_t>>& strides_to_fuse) {
+        if (std::ssize(strides_to_fuse) <= 1) {
+            throw std::runtime_error("Tried fusing Tensor dimensions but passed 1 or less tensors' metadata");
+        }
+        
+        int64_t n_dim = std::ssize(shared_shape);
+        std::vector<int64_t> fused_shape;
+        fused_shape.reserve(n_dim);
+
+        std::vector<std::vector<int64_t>> fused_strides;
+        fused_strides.resize(std::ssize(strides_to_fuse));
+        for (auto& strides_vec : fused_strides) {
+            strides_vec.reserve(n_dim);
+        }
+        // LOOP over dim first with a while loop. Right to left. Jump over 2 dims if fused in a single step.
     }
 }

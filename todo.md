@@ -35,10 +35,10 @@ DONE Rename the repo on github to gradcraft
 DONE CUDA BRIDGE - ToNode and .to() without math on accumulate yet. Just call the dispatcher. CONTIGUITY FORCED. APPLY FOR OFFSET
 DONE Write cuda kernels for filling with values (same or from a list)
 DONE Integrate CUDAMemPool into Storage class for allocations (write first kernel for T() init value)
-- Compile after first CUDA + get right results (fix the CUDAMemPool ptr** pass)
+DONE Compile after first CUDA + get right results (fix the CUDAMemPool ptr** pass)
 - DIM COALESCING ALGO HELPER
+- INTEGRATE DIM FUSING post-broadcast
 - CUDA KERNELS!
-- INTEGRATE DIM COALESCING
 - Write alternative ctors for ones, zeros, normal, uniform etc.
 - Link up BLAS and cuBLAS
 - Write STACK node

@@ -101,6 +101,11 @@ namespace gradc {
         int64_t reduced_vol;
     };
 
+    struct FusedView {
+        std::vector<int64_t> shared_shape;
+        std::vector<std::vector<int64_t>> strides;
+    };
+
     // SETTINGS
     struct PrintOptions {
         int64_t edge_items = 5;
