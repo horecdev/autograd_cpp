@@ -33,11 +33,11 @@ DONE Extend Device to hold index and change enum CUDA/CPU to be DeviceType and a
 DONE Update CUDAMemPool to apply for multiple devices (mallocs too)
 DONE Rename the repo on github to gradcraft
 DONE CUDA BRIDGE - ToNode and .to() without math on accumulate yet. Just call the dispatcher. CONTIGUITY FORCED. APPLY FOR OFFSET
-- Write cuda kernels for filling with values (same or from a list)
-- Write a cuda kernel for accumulation of grad (with broadcasting or just contiguous 1D loop)
-- Integrate CUDAMemPool into Storage class for allocations (write first kernel for filling memory from initializer list and T() init value)
-- CUDA KERNELS!
+DONE Write cuda kernels for filling with values (same or from a list)
+DONE Integrate CUDAMemPool into Storage class for allocations (write first kernel for T() init value)
+- Compile after first CUDA + get right results (fix the CUDAMemPool ptr** pass)
 - DIM COALESCING ALGO HELPER
+- CUDA KERNELS!
 - INTEGRATE DIM COALESCING
 - Write alternative ctors for ones, zeros, normal, uniform etc.
 - Link up BLAS and cuBLAS

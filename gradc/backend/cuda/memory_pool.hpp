@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cuda_device_runtime_api.h>
 #include <cuda_runtime.h>
 #include "../../core/types.hpp"
 #include <cstdint>

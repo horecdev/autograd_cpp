@@ -53,6 +53,7 @@ namespace gradc {
             else if (d.type == DeviceType::CUDA) {
                 os << "CUDA:" << d.index;
             }
+            return os;
         }
 
         constexpr bool is_cpu() {

@@ -16,8 +16,14 @@ set(CMAKE_CUDA_ARCHITECTURES 86)
 add_executable(tensor 
     main.cpp
     gradc/gradc.hpp
-    gradc/backend/cuda/cuda_test.cu
+    gradc/backend/cuda/kernels.cu
 )
+
+# Find the CUDA toolkit installation
+find_package(CUDAToolkit REQUIRED)
+
+# Link the CUDA runtime so .cpp and .hpp files can see <cuda_runtime.h>
+target_link_libraries(tensor PRIVATE CUDA::cudart)
 
 # Tell the compiler to look in the root directory, so "gradc/..." paths work
 target_include_directories(tensor PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

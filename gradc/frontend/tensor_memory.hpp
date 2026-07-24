@@ -72,15 +72,20 @@ namespace gradc {
     }
 
     template <typename T>
-    Tensor<T> Tensor<T>::to(Device device) {
+    Tensor<T> Tensor<T>::to(Device device) const {
         if (device == this->device()) {return *this;}
 
-        Tensor<T> forced_contiguous; // compact data before sending over PCIE bus (dont copy whole underlying array)
         if (!this->is_contiguous()) {
-            forced_contiguous = this->contiguous();
+            Tensor<T> forced_contiguous = this->contiguous(); // compact data before sending over PCIE bus (dont copy whole underlying array)
+            Tensor<T> result = Tensor<T>(m_shape, m_requires_grad, lazy, device);
+            result.m_state->m_creation_op = std::make_unique<ToNode<T>>(forced_contiguous, device);
+            return result;
         }
-        Tensor<T> result = Tensor<T>(m_shape, m_requires_grad, lazy, device);
-        result.m_state->m_creation_op = std::make_unique<ToNode<T>>(forced_contiguous, device);
-        return result;
+        else {
+            Tensor<T> result = Tensor<T>(m_shape, m_requires_grad, lazy, device);
+            result.m_state->m_creation_op = std::make_unique<ToNode<T>>(this, device);
+            return result;
+        }
+        
     }
 }

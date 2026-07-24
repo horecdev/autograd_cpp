@@ -175,7 +175,7 @@ namespace gradc {
 
             template <typename TargetT> Tensor<TargetT> cast() const;
 
-            Tensor to(Device device);
+            Tensor to(Device device) const;
 
     };      
 }
